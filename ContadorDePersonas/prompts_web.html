@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompts e IAs Utilizadas</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --accent: #bb86fc;
+            --code-bg: #2c2c2c;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .prompt-card {
+            background-color: var(--card-bg);
+            border-left: 5px solid var(--accent);
+            padding: 1.5rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease;
+        }
+
+        .prompt-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .prompt-card h2 {
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prompt-content {
+            background-color: var(--code-bg);
+            padding: 1.2rem;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.95rem;
+            color: #cfd8dc;
+            white-space: pre-wrap;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Prompts e IAs Utilizadas</h1>
+
+    <div class="container">
+        
+        <!-- Prompt 1 -->
+        <div class="prompt-card">
+            <h2>1. Prompt Original (Borrador)</h2>
+            <div class="prompt-content">Mejora este prompt, es para Stitch AI: 
+
+Tengo que diseñar una pagina web que trate sobre un contador de personas, tiene que tener en cuenta las siguientes caracteristicas: 
+
+1- Pantalla, si hay 1 persona tiene que ponerlo en singular, si pone 0 tiene que poner personas 
+
+2- Tiene que tener un limite, y debe contar hombres y mujeres 
+
+3- Una imagen de fondo, iconos para que sea mas llamativo, etc…</div>
+        </div>
+
+        <!-- Prompt 2 -->
+        <div class="prompt-card">
+            <h2>2. Prompt Optimizado (Para Stitch AI)</h2>
+            <div class="prompt-content">Actúa como un experto en desarrollo web y diseño UI/UX. Genera el código HTML, CSS y JavaScript para una aplicación web de un "Contador de Aforo".
+
+Requisitos de la Interfaz (Visuales):
+- Diseño moderno, atractivo y completamente responsive (adaptable a móviles).
+- Pon una imagen de fondo relacionada con eventos o discotecas, aplicando un filtro oscuro (overlay) para que los textos blancos destaquen y sean legibles.
+- Utiliza iconos vectoriales o de librerías (tipo FontAwesome) para los botones de sumar/restar y para diferenciar visualmente los marcadores de hombres y mujeres.
+
+Lógica y Funcionalidad (JavaScript):
+- Contadores: Debe haber botones independientes de suma y resta para "Hombres" y para "Mujeres".
+- Pantalla Total: Un marcador principal en el centro que muestre en tiempo real la suma total de ambos contadores.
+- Texto Dinámico (Singular/Plural): Si el total es 1, debe mostrar exactamente "1 persona". Si el total es 0, o mayor a 1, debe mostrar "X personas" (ej. "0 personas", "5 personas").
+- Límite de Aforo: Establece una variable de límite máximo (por ejemplo, 50). Si la suma total alcanza este límite, el sistema debe desactivar los botones de sumar y mostrar un mensaje visual en rojo que diga "Aforo Completo".</div>
+        </div>
+
+        <!-- Prompt 3 -->
+        <div class="prompt-card">
+            <h2>3. Prompt de Ajustes Visuales</h2>
+            <div class="prompt-content">Pon de fondo una imagen de una discoteca, en el apartado de hombres una imagen de un hombre y en el de mujer una imagen de una mujer, detras del contador general mete una imagen de hombres y mujeres.</div>
+        </div>
+
+    </div>
+
+</body>
+</html>

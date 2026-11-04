@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Control de Aforo - Club &amp; Eventos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .glass-card {
+      background: rgba(15, 19, 32, 0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-glow-cyan {
+      box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.25);
+    }
+    .glass-glow-pink {
+      box-shadow: 0 0 35px -5px rgba(236, 72, 153, 0.25);
+    }
+    .glass-glow-alert {
+      box-shadow: 0 0 45px rgba(239, 68, 68, 0.45);
+      border-color: rgba(239, 68, 68, 0.6) !important;
+    }
+    .progress-fill {
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+    }
+    .btn-press:active {
+      transform: scale(0.95);
+    }
+    .btn-press {
+      transition: all 0.15s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen relative bg-slate-950 text-white flex flex-col justify-between overflow-x-hidden">
+<!-- Fondo de discoteca / evento nocturno con overlay oscuro gradiente -->
+<div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+<img alt="Atmósfera de discoteca y luces láser" class="w-full h-full object-cover scale-105 filter brightness-75 contrast-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOsQX7k0fcTEKkESe8pM5q4K7UEl0CGjp9VAitbFJQnuT8PDi0Tn37r4FQe1OF3M-PRJ58fo6CqM2BEwfE8KhV5DaeY6UzrOqZ1ltYmbgfeSiD7TUP5mrJ4ZdjGjaKgR4XuXZ_CtdZFliLAeWCJssC7c4uSao-SW22eFPymQBcHgV3O9VhJw5-gKwS2c7grzbBnl9cgH42akYIkBb0DrFjZ3Z6heIX6eInHGqDnoPG"/>
+<div class="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-slate-950/90 to-slate-950/95"></div>
+<div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-purple-500/10 to-transparent"></div>
+</div>
+<!-- Header Superior -->
+<header class="relative z-10 w-full px-6 py-5 max-w-6xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+<i class="fa-solid fa-users-viewfinder text-lg"></i>
+</div>
+<div>
+<h1 class="font-display font-bold text-xl tracking-tight text-white flex items-center gap-2">
+          VENUE<span class="text-cyan-400">PULSE</span>
+<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">LIVE</span>
+</h1>
+<p class="text-xs text-slate-400">Control de Acceso y Aforo en Tiempo Real</p>
+</div>
+</div>
+<!-- Controles rápidos: Configuración de Aforo Máximo y Reset -->
+<div class="flex items-center gap-3">
+<div class="hidden sm:flex items-center gap-2 bg-slate-900/80 border border-slate-700/60 rounded-xl px-3 py-1.5 backdrop-blur-md shadow-lg shadow-black/40">
+<i class="fa-solid fa-gauge-high text-slate-400 text-xs"></i>
+<label class="text-xs text-slate-400 font-medium" for="maxCapInput">Límite:</label>
+<input class="w-16 bg-slate-800 text-cyan-300 text-sm font-bold text-center rounded px-1.5 py-0.5 border border-slate-600 focus:outline-none focus:border-cyan-400" id="maxCapInput" max="5000" min="10" type="number" value="200"/>
+<span class="text-xs text-slate-500">pax</span>
+</div>
+<button class="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-slate-700/80 hover:border-rose-500/40 transition-all backdrop-blur-md" id="btnReset" title="Reiniciar contadores a cero">
+<i class="fa-solid fa-arrow-rotate-left"></i>
+<span class="hidden md:inline">Reiniciar</span>
+</button>
+</div>
+</header>
+<!-- Contenido Central Principal -->
+<main class="relative z-10 w-full max-w-5xl mx-auto px-4 py-4 md:py-6 flex flex-col gap-6">
+<!-- Tarjeta Central: Indicador Total de Aforo con Fondo Atmosférico de Grupo -->
+<div class="glass-card rounded-3xl p-6 md:p-8 text-center transition-all duration-300 border border-white/10 shadow-2xl relative overflow-hidden" id="totalCard">
+<!-- Imagen de fondo atmosférica sutil del club -->
+<div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+<img alt="Grupo en discoteca" class="w-full h-full object-cover opacity-20 filter contrast-125 saturate-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-M0bpr8N0HxA-f1lI5xt0CRDzsCNZgJEqVp5EBUUslEtg4MeDbTYNxKJNuXAlxeG3v13o9UxXH9VRZUAvR7kyDfqKJop1EuMul1Zg851wssqi6Ov8WmbbGXwmmNcaLVUGTj1XSoArK1QAXZPpq6SYoBfshtJXLT5w5UIpBDn7mw1ZT_zYnFDcAhWvR17a5QEwaRkvh52Psdysp9lbCf1wz-IJMw3HTg1jL9qWScev"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/85 to-slate-950/90"></div>
+</div>
+<!-- Glow decorativo superior -->
+<div class="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-32 bg-cyan-500/20 blur-3xl pointer-events-none rounded-full z-0"></div>
+<!-- Contenido con posición relativa sobre la imagen -->
+<div class="relative z-10">
+<!-- Banner Estado de Aforo Completo (Alerta Dinámica) -->
+<div class="hidden mb-4 inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-sm md:text-base font-bold tracking-wide uppercase animate-pulse shadow-lg shadow-rose-950/50" id="fullCapacityBadge">
+<i class="fa-solid fa-triangle-exclamation text-rose-400 text-base"></i>
+<span>Aforo Completo</span>
+</div>
+<p class="text-xs md:text-sm font-semibold uppercase tracking-widest text-slate-400 mb-1">
+          Ocupación Actual de la Sala
+        </p>
+<!-- Número Principal -->
+<div class="my-2 flex items-center justify-center">
+<span class="font-display text-7xl md:text-9xl font-black tracking-tight text-white drop-shadow-[0_4px_24px_rgba(255,255,255,0.25)]" id="totalDisplay">
+            0
+          </span>
+</div>
+<!-- Texto Dinámico de Personas (Singular/Plural) -->
+<p class="text-lg md:text-2xl font-medium text-cyan-300 tracking-wide drop-shadow-sm" id="totalLabel">
+          0 personas
+        </p>
+<!-- Barra de Progreso y Porcentaje -->
+<div class="mt-6 max-w-lg mx-auto">
+<div class="flex justify-between items-center text-xs font-semibold text-slate-400 mb-2">
+<span>Capacidad máxima: <strong class="text-white" id="limitLabel">200</strong></span>
+<span class="text-cyan-400 font-bold" id="percentageLabel">0% Ocupado</span>
+</div>
+<div class="w-full h-3 bg-slate-900/90 rounded-full overflow-hidden p-0.5 border border-slate-700/60 shadow-inner">
+<div class="progress-fill h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-emerald-400 w-0" id="progressBar"></div>
+</div>
+<div class="flex justify-between items-center text-[11px] text-slate-400 mt-2 font-medium">
+<span>Disponibles: <strong class="text-emerald-400" id="availableSeats">200</strong></span>
+<span class="text-slate-400" id="occupancyStatusText">Entrada libre</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Sección de Contadores Específicos: Hombres y Mujeres -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+<!-- Tarjeta Contador: HOMBRES con Retrato Neón Cyan -->
+<div class="glass-card glass-glow-cyan rounded-3xl p-6 sm:p-7 flex flex-col justify-between border border-cyan-500/20 hover:border-cyan-500/40 transition-all relative overflow-hidden">
+<!-- Fondo sutil de retrato con overlay -->
+<div class="absolute inset-0 z-0 pointer-events-none opacity-15 overflow-hidden">
+<img alt="Hombre de fiesta con iluminación cian" class="w-full h-full object-cover object-center filter grayscale contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4eZR9U5dL-5ooN-fVSAPwmgxDR3Q2mee6nKxC4NCGFqRbe1e0Ow83RM4BX7kTmkbDGTirgWcmVijr-8GutTrIP34DUrzxQa5ZtnUoZZl-8Al76qKEebxBnr_OupovnenlEGQHH-L3aNuTXG8Z-lSop0n4PgSzAdi3RV8QG56IvO7z1uKnPPHwlzEr969Q_EfgSdjQ3UWItcRs-whijJsuK9SDhcuKZ9DWq5M-uhpV"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-cyan-950/30"></div>
+</div>
+<div class="relative z-10 flex items-center justify-between pb-4 border-b border-slate-800/80">
+<div class="flex items-center gap-3">
+<!-- Avatar con la foto de hombre neón -->
+<div class="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-cyan-400/50 shadow-md shadow-cyan-500/30 flex-shrink-0">
+<img alt="Hombre en el club" class="w-full h-full object-cover object-top" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4eZR9U5dL-5ooN-fVSAPwmgxDR3Q2mee6nKxC4NCGFqRbe1e0Ow83RM4BX7kTmkbDGTirgWcmVijr-8GutTrIP34DUrzxQa5ZtnUoZZl-8Al76qKEebxBnr_OupovnenlEGQHH-L3aNuTXG8Z-lSop0n4PgSzAdi3RV8QG56IvO7z1uKnPPHwlzEr969Q_EfgSdjQ3UWItcRs-whijJsuK9SDhcuKZ9DWq5M-uhpV"/>
+<div class="absolute inset-0 bg-cyan-500/10"></div>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-cyan-950/90 rounded-tl-lg flex items-center justify-center text-cyan-300">
+<i class="fa-solid fa-mars text-[10px]"></i>
+</div>
+</div>
+<div>
+<h2 class="text-lg md:text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+              Hombres
+            </h2>
+<span class="text-xs text-cyan-400/80 font-medium">Acceso Masculino</span>
+</div>
+</div>
+<span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 shadow-sm" id="menPercentage">
+            0%
+          </span>
+</div>
+<!-- Indicador de Valor -->
+<div class="relative z-10 py-6 text-center">
+<span class="font-display text-5xl md:text-7xl font-extrabold text-cyan-400 tracking-tight drop-shadow-[0_0_20px_rgba(6,182,212,0.35)]" id="menCount">
+            0
+          </span>
+<p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Registrados</p>
+</div>
+<!-- Botones de Acción (Restar / Sumar) -->
+<div class="relative z-10 grid grid-cols-2 gap-3.5 pt-2">
+<!-- Restar Hombre -->
+<button class="btn-press flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 text-slate-200 font-bold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed" id="btnDecMen" title="Restar 1 hombre">
+<i class="fa-solid fa-minus text-sm text-cyan-300"></i>
+<span>Restar</span>
+</button>
+<!-- Sumar Hombre -->
+<button class="btn-press flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-base transition-all shadow-lg shadow-cyan-500/30 hover:shadow-cyan-400/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none" id="btnIncMen" title="Sumar 1 hombre">
+<i class="fa-solid fa-plus text-sm"></i>
+<span>Sumar</span>
+</button>
+</div>
+</div>
+<!-- Tarjeta Contador: MUJERES con Retrato Neón Magenta -->
+<div class="glass-card glass-glow-pink rounded-3xl p-6 sm:p-7 flex flex-col justify-between border border-pink-500/20 hover:border-pink-500/40 transition-all relative overflow-hidden">
+<!-- Fondo sutil de retrato con overlay -->
+<div class="absolute inset-0 z-0 pointer-events-none opacity-15 overflow-hidden">
+<img alt="Mujer de fiesta con iluminación magenta" class="w-full h-full object-cover object-center filter grayscale contrast-125" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeXsie0Heo3AutKt9lJFS4ZF9LU2PMSOZRxV8dC1HqGZEcVJp5R4PAPh_oyAeZyvnkKPQBLPwmJQspzEmuNPzTd3zPaXY618b77UoK1FPpcSfzQYfNcfMx1SDt4mZhQ3HQXWePrrg7Lacz6kdeJ_WQ0YwsDVqjBOeY7Fwu4fP4R0kqmr398GVXg6YHJoHBjPnyECh05BbqMqj4oxGZr6-vvVwmjW7jUMfoaDLoLw4m"/>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-pink-950/30"></div>
+</div>
+<div class="relative z-10 flex items-center justify-between pb-4 border-b border-slate-800/80">
+<div class="flex items-center gap-3">
+<!-- Avatar con la foto de mujer neón -->
+<div class="relative w-12 h-12 rounded-2xl border-2 border-pink-400/50 shadow-md shadow-pink-500/30 flex-shrink-0 overflow-hidden">
+<img alt="Mujer en el club" class="w-full h-full object-cover object-top" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeXsie0Heo3AutKt9lJFS4ZF9LU2PMSOZRxV8dC1HqGZEcVJp5R4PAPh_oyAeZyvnkKPQBLPwmJQspzEmuNPzTd3zPaXY618b77UoK1FPpcSfzQYfNcfMx1SDt4mZhQ3HQXWePrrg7Lacz6kdeJ_WQ0YwsDVqjBOeY7Fwu4fP4R0kqmr398GVXg6YHJoHBjPnyECh05BbqMqj4oxGZr6-vvVwmjW7jUMfoaDLoLw4m"/>
+<div class="absolute inset-0 bg-pink-500/10"></div>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-pink-950/90 rounded-tl-lg flex items-center justify-center text-pink-300">
+<i class="fa-solid fa-venus text-[10px]"></i>
+</div>
+</div>
+<div>
+<h2 class="text-lg md:text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+              Mujeres
+            </h2>
+<span class="text-xs text-pink-400/80 font-medium">Acceso Femenino</span>
+</div>
+</div>
+<span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-pink-950/80 text-pink-300 border border-pink-800/50 shadow-sm" id="womenPercentage">
+            0%
+          </span>
+</div>
+<!-- Indicador de Valor -->
+<div class="relative z-10 py-6 text-center">
+<span class="font-display text-5xl md:text-7xl font-extrabold text-pink-400 tracking-tight drop-shadow-[0_0_20px_rgba(236,72,153,0.35)]" id="womenCount">
+            0
+          </span>
+<p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Registradas</p>
+</div>
+<!-- Botones de Acción (Restar / Sumar) -->
+<div class="relative z-10 grid grid-cols-2 gap-3.5 pt-2">
+<!-- Restar Mujer -->
+<button class="btn-press flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-slate-500 text-slate-200 font-bold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed" id="btnDecWomen" title="Restar 1 mujer">
+<i class="fa-solid fa-minus text-sm text-pink-300"></i>
+<span>Restar</span>
+</button>
+<!-- Sumar Mujer -->
+<button class="btn-press flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-pink-500 hover:bg-pink-400 text-slate-950 font-extrabold text-base transition-all shadow-lg shadow-pink-500/30 hover:shadow-pink-400/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none" id="btnIncWomen" title="Sumar 1 mujer">
+<i class="fa-solid fa-plus text-sm"></i>
+<span>Sumar</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Barra de métricas y atajos para el portero / recepcionista -->
+<div class="glass-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400 border border-white/5">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-2">
+<i class="fa-solid fa-keyboard text-slate-500"></i>
+<span>Atajos: <kbd class="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">H</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">M</kbd> para sumar</span>
+</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+<span class="text-slate-300 font-medium">Sincronización activa del punto de acceso</span>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="relative z-10 w-full px-6 py-4 text-center text-xs text-slate-500">
+    Control de Aforo © 2025 • Optimizado para pantallas táctiles y escritorios
+  </footer>
+<!-- LÓGICA JAVASCRIPT -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Estado de la aplicación
+      let men = 0;
+      let women = 0;
+      let maxCapacity = 200;
+
+      // Elementos del DOM
+      const totalDisplay = document.getElementById('totalDisplay');
+      const totalLabel = document.getElementById('totalLabel');
+      const menCount = document.getElementById('menCount');
+      const womenCount = document.getElementById('womenCount');
+      const menPercentage = document.getElementById('menPercentage');
+      const womenPercentage = document.getElementById('womenPercentage');
+      const progressBar = document.getElementById('progressBar');
+      const percentageLabel = document.getElementById('percentageLabel');
+      const limitLabel = document.getElementById('limitLabel');
+      const availableSeats = document.getElementById('availableSeats');
+      const occupancyStatusText = document.getElementById('occupancyStatusText');
+      const fullCapacityBadge = document.getElementById('fullCapacityBadge');
+      const totalCard = document.getElementById('totalCard');
+      const maxCapInput = document.getElementById('maxCapInput');
+      const btnReset = document.getElementById('btnReset');
+
+      // Botones
+      const btnIncMen = document.getElementById('btnIncMen');
+      const btnDecMen = document.getElementById('btnDecMen');
+      const btnIncWomen = document.getElementById('btnIncWomen');
+      const btnDecWomen = document.getElementById('btnDecWomen');
+
+      // Función principal de renderizado y sincronización
+      function updateUI() {
+        const total = men + women;
+        const isFull = total >= maxCapacity;
+        const available = Math.max(0, maxCapacity - total);
+        const percent = Math.min(100, Math.round((total / maxCapacity) * 100));
+
+        // 1. Pantalla Total
+        totalDisplay.textContent = total;
+
+        // 2. Texto Dinámico Singular / Plural
+        // Requisito: Si es 1 -> "1 persona". Si es 0 o >1 -> "X personas"
+        if (total === 1) {
+          totalLabel.textContent = '1 persona';
+        } else {
+          totalLabel.textContent = `${total} personas`;
+        }
+
+        // 3. Contadores específicos
+        menCount.textContent = men;
+        womenCount.textContent = women;
+
+        // Ratio de distribución
+        if (total > 0) {
+          menPercentage.textContent = `${Math.round((men / total) * 100)}%`;
+          womenPercentage.textContent = `${Math.round((women / total) * 100)}%`;
+        } else {
+          menPercentage.textContent = '0%';
+          womenPercentage.textContent = '0%';
+        }
+
+        // 4. Límite de aforo y estado visual
+        limitLabel.textContent = maxCapacity;
+        availableSeats.textContent = available;
+        percentageLabel.textContent = `${percent}% Ocupado`;
+        progressBar.style.width = `${percent}%`;
+
+        // Colores de la barra según porcentaje
+        if (isFull) {
+          progressBar.className = 'progress-fill h-full rounded-full bg-rose-500';
+          totalCard.classList.add('glass-glow-alert');
+          fullCapacityBadge.classList.remove('hidden');
+          occupancyStatusText.textContent = 'Ingreso bloqueado';
+          occupancyStatusText.className = 'text-rose-400 font-semibold';
+        } else if (percent >= 85) {
+          progressBar.className = 'progress-fill h-full rounded-full bg-amber-500';
+          totalCard.classList.remove('glass-glow-alert');
+          fullCapacityBadge.classList.add('hidden');
+          occupancyStatusText.textContent = 'Aforo casi completo';
+          occupancyStatusText.className = 'text-amber-400 font-semibold';
+        } else {
+          progressBar.className = 'progress-fill h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-emerald-400';
+          totalCard.classList.remove('glass-glow-alert');
+          fullCapacityBadge.classList.add('hidden');
+          occupancyStatusText.textContent = 'Entrada libre';
+          occupancyStatusText.className = 'text-slate-400';
+        }
+
+        // 5. Deshabilitar botones al alcanzar el límite o cero
+        btnIncMen.disabled = isFull;
+        btnIncWomen.disabled = isFull;
+
+        btnDecMen.disabled = men <= 0;
+        btnDecWomen.disabled = women <= 0;
+      }
+
+      // Handlers de botones de Hombres
+      btnIncMen.addEventListener('click', () => {
+        if (men + women < maxCapacity) {
+          men++;
+          updateUI();
+        }
+      });
+
+      btnDecMen.addEventListener('click', () => {
+        if (men > 0) {
+          men--;
+          updateUI();
+        }
+      });
+
+      // Handlers de botones de Mujeres
+      btnIncWomen.addEventListener('click', () => {
+        if (men + women < maxCapacity) {
+          women++;
+          updateUI();
+        }
+      });
+
+      btnDecWomen.addEventListener('click', () => {
+        if (women > 0) {
+          women--;
+          updateUI();
+        }
+      });
+
+      // Configuración dinámica de aforo máximo
+      maxCapInput.addEventListener('change', (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val > 0) {
+          maxCapacity = val;
+          updateUI();
+        } else {
+          maxCapInput.value = maxCapacity;
+        }
+      });
+
+      // Reinicio de aforo
+      btnReset.addEventListener('click', () => {
+        if (men > 0 || women > 0) {
+          if (confirm('¿Deseas reiniciar los contadores de aforo a cero?')) {
+            men = 0;
+            women = 0;
+            updateUI();
+          }
+        }
+      });
+
+      // Atajos de teclado para agilizar el trabajo en eventos concurridos
+      document.addEventListener('keydown', (e) => {
+        // Evitar activar atajos si el usuario escribe en el input
+        if (document.activeElement === maxCapInput) return;
+
+        const key = e.key.toLowerCase();
+        if (key === 'h' && men + women < maxCapacity) {
+          men++;
+          updateUI();
+        } else if (key === 'm' && men + women < maxCapacity) {
+          women++;
+          updateUI();
+        }
+      });
+
+      // Inicialización
+      updateUI();
+    });
+  </script>
+</body></html>

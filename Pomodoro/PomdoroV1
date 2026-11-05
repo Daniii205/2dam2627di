@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomodoro &amp; Life Tracker</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/fill/style.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+            },
+            accent: {
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              amber: '#f59e0b',
+              sky: '#0284c7'
+            },
+            darkBg: '#090d16',
+            cardBg: '#121826',
+            borderSubtle: '#1f293d'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar & smoothness */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0c1220; }
+    ::-webkit-scrollbar-thumb { background: #243048; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374667; }
+    
+    .glow-indigo {
+      box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.35);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+    }
+    .glow-rose {
+      box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
+    }
+
+    /* Pulse animation for active timer */
+    @keyframes subtlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .timer-running {
+      animation: subtlePulse 2.5s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white pb-24 md:pb-6">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none w-11/12 max-w-sm"></div>
+
+  <!-- Top App Bar / Header -->
+  <header class="sticky top-0 z-40 bg-darkBg/80 backdrop-blur-md border-b border-borderSubtle px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+        <i class="ph-fill ph-timer text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5 leading-none">
+          LifeTracker <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">Pro</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-0.5">Productividad &amp; Balance Diario</p>
+      </div>
+    </div>
+
+    <!-- Quick Audio Preview / Info button -->
+    <div class="flex items-center gap-2">
+      <button id="sound-test-btn" title="Probar sonido de alarma Web Audio" class="w-9 h-9 rounded-lg bg-cardBg border border-borderSubtle text-slate-300 hover:text-white hover:border-slate-600 flex items-center justify-center text-lg transition active:scale-95">
+        <i class="ph ph-speaker-high"></i>
+      </button>
+      <div class="h-6 w-px bg-borderSubtle mx-0.5 hidden sm:block"></div>
+      <span id="current-time-badge" class="hidden sm:inline-flex text-xs font-mono font-medium text-slate-400 bg-cardBg px-2.5 py-1.5 rounded-lg border border-borderSubtle">
+        00:00:00
+      </span>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-4 md:py-6 flex flex-col">
+
+    <!-- Desktop Tab Navigation Switcher (Synchronized with Mobile Bar) -->
+    <nav class="hidden md:flex items-center gap-2 p-1.5 bg-cardBg border border-borderSubtle rounded-2xl mb-6 shadow-sm">
+      <button data-target="tab-pomodoro" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-white bg-brand-600 shadow-sm">
+        <i class="ph-fill ph-timer text-lg"></i>
+        <span>Pomodoro &amp; Rutina</span>
+      </button>
+      <button data-target="tab-schedule" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+        <i class="ph ph-calendar-blank text-lg"></i>
+        <span>Bloques Horarios</span>
+      </button>
+      <button data-target="tab-tasks" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+        <i class="ph ph-check-square-offset text-lg"></i>
+        <span>Gestor de Tareas</span>
+      </button>
+      <button data-target="tab-sleep" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+        <i class="ph ph-moon-stars text-lg"></i>
+        <span>Control de Sueño</span>
+      </button>
+    </nav>
+
+    <!-- SECTION 1: TEMPORIZADOR POMODORO -->
+    <section id="tab-pomodoro" class="tab-pane active flex flex-col gap-6">
+      
+      <!-- Top banner stats -->
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-cardBg border border-borderSubtle rounded-2xl p-3 text-center">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Sesiones Hoy</span>
+          <span id="stat-sessions" class="text-xl font-bold text-white mt-0.5 block">0</span>
+        </div>
+        <div class="bg-cardBg border border-borderSubtle rounded-2xl p-3 text-center">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Tiempo Foco</span>
+          <span id="stat-focus-time" class="text-xl font-bold text-brand-400 mt-0.5 block">0m</span>
+        </div>
+        <div class="bg-cardBg border border-borderSubtle rounded-2xl p-3 text-center">
+          <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Racha Actual</span>
+          <span id="stat-streak" class="text-xl font-bold text-accent-emerald mt-0.5 flex items-center justify-center gap-1">
+            <i class="ph-fill ph-fire text-amber-500"></i> 1
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Pomodoro Card -->
+      <div class="bg-cardBg border border-borderSubtle rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden shadow-xl">
+        <!-- Glow accent in background -->
+        <div id="timer-glow" class="absolute -top-24 -left-24 w-60 h-60 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none transition-all duration-700"></div>
+
+        <!-- Mode selector pills -->
+        <div class="flex items-center gap-2 p-1.5 bg-darkBg/90 border border-borderSubtle rounded-2xl mb-8 z-10 w-full max-w-xs justify-center">
+          <button id="mode-work" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition text-white bg-brand-600 shadow">
+            Enfoque
+          </button>
+          <button id="mode-short" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white">
+            Descanso Corto
+          </button>
+          <button id="mode-long" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white">
+            Largo
+          </button>
+        </div>
+
+        <!-- Circular Visual Timer Display -->
+        <div class="relative w-64 h-64 flex items-center justify-center my-2">
+          <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 240 240">
+            <!-- Background circle track -->
+            <circle cx="120" cy="120" r="102" stroke="currentColor" stroke-width="12" fill="none" class="text-slate-800/80" />
+            <!-- Animated progress ring -->
+            <circle id="timer-circle-progress" cx="120" cy="120" r="102" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="640.88" stroke-dashoffset="0" class="text-brand-500 transition-all duration-300" />
+          </svg>
+
+          <!-- Inside content -->
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span id="timer-tag" class="text-xs uppercase font-bold tracking-widest px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 mb-1">
+              Foco Activo
+            </span>
+            <div id="timer-display" class="text-5xl md:text-6xl font-black font-mono tracking-tight text-white my-1">
+              25:00
+            </div>
+            <p id="timer-status-hint" class="text-xs text-slate-400 flex items-center gap-1 mt-1">
+              <i class="ph-fill ph-circle text-[8px] text-accent-emerald animate-ping"></i> Listo para comenzar
+            </p>
+          </div>
+        </div>
+
+        <!-- Actions: Start, Pause, Reset -->
+        <div class="flex items-center gap-4 mt-8 w-full max-w-sm justify-center z-10">
+          <button id="btn-reset" class="w-13 h-13 p-3.5 rounded-2xl bg-darkBg border border-borderSubtle text-slate-400 hover:text-white hover:border-slate-600 transition flex items-center justify-center text-xl active:scale-95 shadow-md">
+            <i class="ph ph-arrow-counter-clockwise"></i>
+          </button>
+          
+          <button id="btn-toggle" class="flex-1 py-4 px-6 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-base shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition active:scale-98">
+            <i id="btn-toggle-icon" class="ph-fill ph-play text-xl"></i>
+            <span id="btn-toggle-text">Iniciar Sesión</span>
+          </button>
+
+          <button id="btn-skip" title="Saltar al siguiente ciclo" class="w-13 h-13 p-3.5 rounded-2xl bg-darkBg border border-borderSubtle text-slate-400 hover:text-white hover:border-slate-600 transition flex items-center justify-center text-xl active:scale-95 shadow-md">
+            <i class="ph ph-fast-forward"></i>
+          </button>
+        </div>
+
+        <!-- Quick Duration Customizer Drawer/Accordion -->
+        <div class="w-full max-w-md mt-8 pt-6 border-t border-borderSubtle">
+          <div class="flex items-center justify-between mb-3 cursor-pointer select-none" id="toggle-config-accordion">
+            <div class="flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <i class="ph ph-sliders text-brand-400 text-base"></i>
+              <span>Ajustar Tiempos (Minutos)</span>
+            </div>
+            <span class="text-xs text-slate-500 flex items-center gap-1">
+              <i class="ph ph-caret-down text-sm"></i>
+            </span>
+          </div>
+
+          <div id="config-inputs-row" class="grid grid-cols-3 gap-3">
+            <div class="bg-darkBg/60 p-2.5 rounded-xl border border-borderSubtle">
+              <label class="block text-[11px] text-slate-400 mb-1">Trabajo</label>
+              <div class="flex items-center gap-1">
+                <input id="input-work-min" type="number" min="1" max="90" value="25" class="w-full bg-transparent text-white font-bold font-mono text-sm focus:outline-none">
+                <span class="text-xs text-slate-500">m</span>
+              </div>
+            </div>
+            <div class="bg-darkBg/60 p-2.5 rounded-xl border border-borderSubtle">
+              <label class="block text-[11px] text-slate-400 mb-1">Descanso</label>
+              <div class="flex items-center gap-1">
+                <input id="input-short-min" type="number" min="1" max="45" value="5" class="w-full bg-transparent text-white font-bold font-mono text-sm focus:outline-none">
+                <span class="text-xs text-slate-500">m</span>
+              </div>
+            </div>
+            <div class="bg-darkBg/60 p-2.5 rounded-xl border border-borderSubtle">
+              <label class="block text-[11px] text-slate-400 mb-1">D. Largo</label>
+              <div class="flex items-center gap-1">
+                <input id="input-long-min" type="number" min="1" max="60" value="15" class="w-full bg-transparent text-white font-bold font-mono text-sm focus:outline-none">
+                <span class="text-xs text-slate-500">m</span>
+              </div>
+            </div>
+          </div>
+          <button id="save-durations-btn" class="w-full mt-3 py-2 px-3 bg-slate-800/80 hover:bg-slate-700/80 text-xs font-semibold text-slate-200 rounded-xl transition border border-borderSubtle">
+            Guardar Configuración de Tiempos
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 2: BLOQUES HORARIOS PERSONALIZADOS (HORARIO DIARIO) -->
+    <section id="tab-schedule" class="tab-pane hidden flex-col gap-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="ph-fill ph-calendar text-brand-400"></i> Bloques Horarios del Día
+          </h2>
+          <p class="text-xs text-slate-400">Estructura tu jornada en rangos de tiempo definidos (ej. Programación, Descanso, Clases).</p>
+        </div>
+        <button id="open-new-block-btn" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition shadow-md shadow-brand-500/20 active:scale-95">
+          <i class="ph-bold ph-plus text-sm"></i> Nuevo Bloque
+        </button>
+      </div>
+
+      <!-- Add / Edit Schedule Block Form Card -->
+      <div id="schedule-form-container" class="bg-cardBg border border-borderSubtle rounded-2xl p-4 md:p-5 hidden">
+        <h3 id="schedule-form-title" class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <i class="ph ph-clock"></i> Añadir Rango Horario
+        </h3>
+        <form id="schedule-form" class="space-y-3">
+          <input type="hidden" id="schedule-edit-id" value="">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Título de la actividad</label>
+            <input type="text" id="schedule-title" placeholder="ej. 09:00 - 11:00 Programación DAM" required class="w-full px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Hora Inicio</label>
+              <input type="time" id="schedule-start" required class="w-full px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Hora Fin</label>
+              <input type="time" id="schedule-end" required class="w-full px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Categoría</label>
+              <select id="schedule-cat" class="w-full px-3 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+                <option value="estudio">📚 Estudio / DAM</option>
+                <option value="trabajo">💼 Trabajo</option>
+                <option value="descanso">☕ Descanso / Almuerzo</option>
+                <option value="ejercicio">⚡ Ejercicio / Salud</option>
+                <option value="otro">✨ Otro</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Color Etiqueta</label>
+              <div class="flex items-center gap-2 pt-1.5">
+                <label class="cursor-pointer"><input type="radio" name="block-color" value="indigo" checked class="sr-only peer"><span class="w-6 h-6 rounded-full bg-indigo-500 block peer-checked:ring-2 peer-checked:ring-white"></span></label>
+                <label class="cursor-pointer"><input type="radio" name="block-color" value="emerald" class="sr-only peer"><span class="w-6 h-6 rounded-full bg-emerald-500 block peer-checked:ring-2 peer-checked:ring-white"></span></label>
+                <label class="cursor-pointer"><input type="radio" name="block-color" value="amber" class="sr-only peer"><span class="w-6 h-6 rounded-full bg-amber-500 block peer-checked:ring-2 peer-checked:ring-white"></span></label>
+                <label class="cursor-pointer"><input type="radio" name="block-color" value="rose" class="sr-only peer"><span class="w-6 h-6 rounded-full bg-rose-500 block peer-checked:ring-2 peer-checked:ring-white"></span></label>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="button" id="schedule-cancel-btn" class="px-3.5 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition">Cancelar</button>
+            <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition shadow">Guardar Bloque</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Schedule Timeline List -->
+      <div class="bg-cardBg border border-borderSubtle rounded-2xl p-4 md:p-5">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Cronograma del Día</span>
+          <span id="schedule-count" class="text-xs text-slate-500 font-mono">0 actividades</span>
+        </div>
+        <div id="schedule-list" class="space-y-2.5">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: GESTOR DE TAREAS (AGENDA / TO-DO CRUD) -->
+    <section id="tab-tasks" class="tab-pane hidden flex-col gap-6">
+      
+      <!-- Top header with actions & counters -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="ph-fill ph-check-circle text-accent-emerald"></i> Agenda &amp; To-Do
+          </h2>
+          <p class="text-xs text-slate-400">Gestiona tus entregas, proyectos y tareas con recordatorio de fecha límite.</p>
+        </div>
+        <button id="open-new-task-btn" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition shadow-md shadow-brand-500/20 active:scale-95">
+          <i class="ph-bold ph-plus text-sm"></i> Nueva Tarea
+        </button>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-cardBg border border-borderSubtle rounded-2xl p-2.5">
+        <!-- Search -->
+        <div class="relative w-full sm:w-64">
+          <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input id="task-search-input" type="text" placeholder="Buscar tareas..." class="w-full bg-darkBg text-xs text-white pl-9 pr-3 py-2 rounded-xl border border-borderSubtle focus:outline-none focus:border-brand-500">
+        </div>
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-1.5 w-full sm:w-auto bg-darkBg p-1 rounded-xl border border-borderSubtle">
+          <button data-filter="all" class="task-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-brand-600 transition">
+            Todas (<span id="count-all">0</span>)
+          </button>
+          <button data-filter="pending" class="task-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+            Pendientes (<span id="count-pending">0</span>)
+          </button>
+          <button data-filter="completed" class="task-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+            Completadas (<span id="count-completed">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Add / Edit Task Modal-like Form -->
+      <div id="task-form-container" class="bg-cardBg border border-borderSubtle rounded-2xl p-4 md:p-5 hidden shadow-lg">
+        <h3 id="task-form-title" class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <i class="ph ph-note-pencil text-brand-400"></i> Añadir Nueva Tarea
+        </h3>
+        <form id="task-form" class="space-y-3">
+          <input type="hidden" id="task-edit-id" value="">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Título de la tarea *</label>
+            <input type="text" id="task-title" placeholder="ej. Entregar práctica DAM de Android Studio" required class="w-full px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Descripción / Notas adicionales</label>
+            <textarea id="task-desc" rows="2" placeholder="Detalles de requisitos o apuntes..." class="w-full px-3.5 py-2 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none"></textarea>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Fecha y Hora Límite</label>
+              <input type="datetime-local" id="task-due" class="w-full px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Prioridad</label>
+              <select id="task-priority" class="w-full px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-sm focus:border-brand-500 focus:outline-none">
+                <option value="alta">🔴 Alta Prioridad</option>
+                <option value="media" selected>🟡 Media</option>
+                <option value="baja">🟢 Baja</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="button" id="task-cancel-btn" class="px-3.5 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition">Cancelar</button>
+            <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition shadow">Guardar Tarea</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tasks List -->
+      <div id="tasks-list" class="space-y-2.5">
+        <!-- Rendered by JS -->
+      </div>
+
+    </section>
+
+    <!-- SECTION 4: CALCULADORA Y CONTROL DE SUEÑO -->
+    <section id="tab-sleep" class="tab-pane hidden flex-col gap-6">
+      
+      <div>
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="ph-fill ph-moon-stars text-indigo-400"></i> Calculadora y Registro de Sueño
+        </h2>
+        <p class="text-xs text-slate-400">Registra tus horas de descanso nocturno y analiza la regularidad de tus ciclos de sueño.</p>
+      </div>
+
+      <!-- Sleep Calculator Input Card -->
+      <div class="bg-cardBg border border-borderSubtle rounded-3xl p-5 md:p-6 shadow-xl">
+        <form id="sleep-calc-form" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-darkBg/70 p-4 rounded-2xl border border-borderSubtle">
+              <label class="flex items-center gap-2 text-xs font-semibold text-indigo-300 mb-2">
+                <i class="ph-fill ph-bed text-base"></i> Hora en la que te acostaste
+              </label>
+              <input type="time" id="sleep-bedtime" value="23:30" required class="w-full bg-darkBg text-xl font-bold font-mono text-white px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-brand-500">
+            </div>
+
+            <div class="bg-darkBg/70 p-4 rounded-2xl border border-borderSubtle">
+              <label class="flex items-center gap-2 text-xs font-semibold text-amber-300 mb-2">
+                <i class="ph-fill ph-sun text-base"></i> Hora en la que te despertaste
+              </label>
+              <input type="time" id="sleep-waketime" value="07:15" required class="w-full bg-darkBg text-xl font-bold font-mono text-white px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-brand-500">
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input type="text" id="sleep-note" placeholder="Nota opcional (ej. Sueño reparador, me costó dormir...)" class="flex-1 px-3.5 py-2.5 bg-darkBg border border-borderSubtle rounded-xl text-white text-xs focus:outline-none focus:border-brand-500">
+            <button type="submit" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-xl transition shadow active:scale-95 whitespace-nowrap">
+              Calcular &amp; Guardar
+            </button>
+          </div>
+        </form>
+
+        <!-- Visual Result Banner -->
+        <div id="sleep-result-card" class="mt-6 p-4 rounded-2xl bg-gradient-to-r from-indigo-950/70 via-slate-900 to-violet-950/60 border border-indigo-500/30 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-2xl">
+              <i class="ph-fill ph-sparkle"></i>
+            </div>
+            <div>
+              <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Último Cálculo</span>
+              <h3 id="sleep-result-text" class="text-lg font-bold text-white leading-tight">
+                Has dormido 7 horas y 45 minutos
+              </h3>
+              <p id="sleep-feedback" class="text-xs text-emerald-400 mt-0.5">
+                Óptimo para recuperación cognitiva y concentración.
+              </p>
+            </div>
+          </div>
+          <div class="text-right hidden sm:block">
+            <span class="text-xs font-mono text-slate-400">Ciclos aprox.</span>
+            <div id="sleep-cycles-badge" class="text-sm font-bold text-brand-300 font-mono">~5.1 ciclos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sleep Log / History -->
+      <div class="bg-cardBg border border-borderSubtle rounded-2xl p-4 md:p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <i class="ph ph-clock-counter-clockwise text-indigo-400"></i>
+            <h3 class="text-sm font-bold text-white">Historial Reciente de Sueño</h3>
+          </div>
+          <button id="clear-sleep-history-btn" class="text-xs text-slate-400 hover:text-rose-400 transition">
+            Limpiar Historial
+          </button>
+        </div>
+
+        <div id="sleep-history-list" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar (Fixed for Mobile UX) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-cardBg/95 backdrop-blur-md border-t border-borderSubtle px-2 py-2 flex items-center justify-around shadow-2xl">
+    <button data-target="tab-pomodoro" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl text-brand-400">
+      <i class="ph-fill ph-timer text-xl"></i>
+      <span class="text-[10px] font-bold">Pomodoro</span>
+    </button>
+    <button data-target="tab-schedule" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl text-slate-400">
+      <i class="ph ph-calendar-blank text-xl"></i>
+      <span class="text-[10px] font-bold">Horarios</span>
+    </button>
+    <button data-target="tab-tasks" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl text-slate-400">
+      <i class="ph ph-check-square-offset text-xl"></i>
+      <span class="text-[10px] font-bold">Tareas</span>
+    </button>
+    <button data-target="tab-sleep" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl text-slate-400">
+      <i class="ph ph-moon-stars text-xl"></i>
+      <span class="text-[10px] font-bold">Sueño</span>
+    </button>
+  </nav>
+
+  <!-- JAVASCRIPT APPLICATION CODE -->
+  <script>
+    /**
+     * POMODORO & LIFE TRACKER - FULL MODULAR SCRIPT
+     * Features: Web Audio API synth, LocalStorage Persistence,
+     * Pomodoro Cycle logic, Schedule CRUD, Task CRUD, Sleep Calculator.
+     */
+
+    // --- 1. AUDIO SYNTHESIZER (WEB AUDIO API) ---
+    // Safe, reliable, external-asset-free audible alarms
+    class AudioNotifier {
+      constructor() {
+        this.audioCtx = null;
+      }
+
+      init() {
+        if (!this.audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.audioCtx = new AudioContext();
+        }
+        if (this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+      }
+
+      playAlarm(isBreak = false) {
+        try {
+          this.init();
+          const now = this.audioCtx.currentTime;
+
+          // Harmonic pleasant chime sequence
+          const freqs = isBreak ? [523.25, 659.25, 783.99, 1046.50] : [880, 698.46, 880, 1174.66];
+          
+          freqs.forEach((freq, idx) => {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+
+            osc.type = isBreak ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+
+            gain.gain.setValueAtTime(0.001, now + idx * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.3, now + idx * 0.15 + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.15 + 0.45);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+
+            osc.start(now + idx * 0.15);
+            osc.stop(now + idx * 0.15 + 0.5);
+          });
+        } catch (e) {
+          console.warn('Audio playback not permitted yet without user click:', e);
+        }
+      }
+
+      playPing() {
+        try {
+          this.init();
+          const osc = this.audioCtx.createOscillator();
+          const gain = this.audioCtx.createGain();
+          const now = this.audioCtx.currentTime;
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(659.25, now); // E5 note
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+          osc.connect(gain);
+          gain.connect(this.audioCtx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } catch (e) {}
+      }
+    }
+
+    const soundSystem = new AudioNotifier();
+
+    // --- 2. TOAST NOTIFICATIONS ---
+    function showToast(title, message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const borderClass = type === 'success' ? 'border-emerald-500/50 text-emerald-300' :
+                          type === 'warning' ? 'border-amber-500/50 text-amber-300' :
+                          'border-indigo-500/50 text-indigo-300';
+                          
+      const icon = type === 'success' ? 'ph-check-circle' :
+                   type === 'warning' ? 'ph-bell-ringing' : 'ph-info';
+
+      toast.className = `p-3.5 rounded-2xl bg-cardBg/95 backdrop-blur-md border ${borderClass} shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto`;
+      toast.innerHTML = `
+        <div class="text-xl flex-shrink-0"><i class="ph-fill ${icon}"></i></div>
+        <div class="flex-1">
+          <p class="text-xs font-bold text-white">${title}</p>
+          <p class="text-[11px] text-slate-300">${message}</p>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      // Trigger animation
+      requestAnimationFrame(() => {
+        toast.classList.remove('opacity-0', 'translate-y-2');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // --- 3. TAB NAVIGATION CONTROLLER ---
+    const tabBtns = document.querySelectorAll('.tab-btn, .mobile-nav-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    function switchTab(targetId) {
+      tabPanes.forEach(pane => {
+        if (pane.id === targetId) {
+          pane.classList.remove('hidden');
+          pane.classList.add('flex');
+        } else {
+          pane.classList.add('hidden');
+          pane.classList.remove('flex');
+        }
+      });
+
+      // Update Desktop Tabs
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const matches = btn.dataset.target === targetId;
+        btn.className = matches 
+          ? 'tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-white bg-brand-600 shadow-sm'
+          : 'tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/40';
+      });
+
+      // Update Mobile Navigation Bar
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        const matches = btn.dataset.target === targetId;
+        if (matches) {
+          btn.classList.add('text-brand-400');
+          btn.classList.remove('text-slate-400');
+        } else {
+          btn.classList.remove('text-brand-400');
+          btn.classList.add('text-slate-400');
+        }
+      });
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.target));
+    });
+
+    // Clock in header
+    setInterval(() => {
+      const now = new Date();
+      const el = document.getElementById('current-time-badge');
+      if (el) el.textContent = now.toTimeString().split(' ')[0];
+    }, 1000);
+
+    // Sound test button
+    document.getElementById('sound-test-btn').addEventListener('click', () => {
+      soundSystem.playAlarm(false);
+      showToast('Prueba de Sonido', 'Alarma audible generada con Web Audio API', 'info');
+    });
+
+    // --- 4. POMODORO TIMER MODULE ---
+    const Pomodoro = {
+      state: {
+        mode: 'work', // 'work' | 'short' | 'long'
+        isRunning: false,
+        timeLeft: 25 * 60,
+        totalTime: 25 * 60,
+        durations: {
+          work: 25,
+          short: 5,
+          long: 15
+        },
+        sessionsCompleted: 0,
+        totalFocusMinutes: 0
+      },
+      timerInterval: null,
+      circumference: 2 * Math.PI * 102, // r=102 -> ~640.88
+
+      init() {
+        this.loadState();
+        this.bindEvents();
+        this.updateDisplay();
+      },
+
+      loadState() {
+        const saved = localStorage.getItem('pomodoro_app_data');
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            this.state.durations = data.durations || this.state.durations;
+            this.state.sessionsCompleted = data.sessionsCompleted || 0;
+            this.state.totalFocusMinutes = data.totalFocusMinutes || 0;
+            
+            document.getElementById('input-work-min').value = this.state.durations.work;
+            document.getElementById('input-short-min').value = this.state.durations.short;
+            document.getElementById('input-long-min').value = this.state.durations.long;
+          } catch(e) {}
+        }
+        this.setMode('work', false);
+      },
+
+      saveState() {
+        localStorage.setItem('pomodoro_app_data', JSON.stringify({
+          durations: this.state.durations,
+          sessionsCompleted: this.state.sessionsCompleted,
+          totalFocusMinutes: this.state.totalFocusMinutes
+        }));
+      },
+
+      bindEvents() {
+        document.getElementById('btn-toggle').addEventListener('click', () => this.toggle());
+        document.getElementById('btn-reset').addEventListener('click', () => this.reset());
+        document.getElementById('btn-skip').addEventListener('click', () => this.skip());
+
+        document.getElementById('mode-work').addEventListener('click', () => this.setMode('work'));
+        document.getElementById('mode-short').addEventListener('click', () => this.setMode('short'));
+        document.getElementById('mode-long').addEventListener('click', () => this.setMode('long'));
+
+        document.getElementById('save-durations-btn').addEventListener('click', () => {
+          const w = parseInt(document.getElementById('input-work-min').value, 10) || 25;
+          const s = parseInt(document.getElementById('input-short-min').value, 10) || 5;
+          const l = parseInt(document.getElementById('input-long-min').value, 10) || 15;
+          this.state.durations = { work: w, short: s, long: l };
+          this.saveState();
+          this.setMode(this.state.mode, false);
+          showToast('Configuración Guardada', `Tiempos actualizados: ${w}m trabajo / ${s}m descanso`, 'success');
+        });
+      },
+
+      setMode(mode, autoStart = false) {
+        this.pause();
+        this.state.mode = mode;
+        const minutes = this.state.durations[mode];
+        this.state.timeLeft = minutes * 60;
+        this.state.totalTime = minutes * 60;
+
+        // UI Modes button update
+        const modes = ['work', 'short', 'long'];
+        modes.forEach(m => {
+          const btn = document.getElementById(`mode-${m}`);
+          if (m === mode) {
+            btn.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition text-white bg-brand-600 shadow';
+          } else {
+            btn.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-white';
+          }
+        });
+
+        // Tag styling
+        const tag = document.getElementById('timer-tag');
+        const circle = document.getElementById('timer-circle-progress');
+        if (mode === 'work') {
+          tag.textContent = 'Foco Activo';
+          tag.className = 'text-xs uppercase font-bold tracking-widest px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 mb-1';
+          circle.classList.remove('text-accent-emerald', 'text-accent-sky');
+          circle.classList.add('text-brand-500');
+        } else {
+          tag.textContent = mode === 'short' ? 'Descanso Corto' : 'Descanso Largo';
+          tag.className = 'text-xs uppercase font-bold tracking-widest px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-1';
+          circle.classList.remove('text-brand-500');
+          circle.classList.add('text-accent-emerald');
+        }
+
+        this.updateDisplay();
+        if (autoStart) this.start();
+      },
+
+      toggle() {
+        soundSystem.init(); // enable audio context on interaction
+        if (this.state.isRunning) {
+          this.pause();
+        } else {
+          this.start();
+        }
+      },
+
+      start() {
+        if (this.state.isRunning) return;
+        this.state.isRunning = true;
+        document.getElementById('btn-toggle-icon').className = 'ph-fill ph-pause text-xl';
+        document.getElementById('btn-toggle-text').textContent = 'Pausar';
+        document.getElementById('btn-toggle').classList.replace('bg-brand-600', 'bg-amber-600');
+        document.getElementById('timer-status-hint').innerHTML = '<i class="ph-fill ph-circle text-[8px] text-brand-400 animate-pulse"></i> Sesión en curso...';
+        document.getElementById('timer-display').classList.add('timer-running');
+
+        this.timerInterval = setInterval(() => {
+          this.tick();
+        }, 1000);
+      },
+
+      pause() {
+        this.state.isRunning = false;
+        clearInterval(this.timerInterval);
+        document.getElementById('btn-toggle-icon').className = 'ph-fill ph-play text-xl';
+        document.getElementById('btn-toggle-text').textContent = 'Continuar';
+        document.getElementById('btn-toggle').classList.replace('bg-amber-600', 'bg-brand-600');
+        document.getElementById('timer-status-hint').innerHTML = '<i class="ph-fill ph-circle text-[8px] text-slate-500"></i> Pausado';
+        document.getElementById('timer-display').classList.remove('timer-running');
+      },
+
+      reset() {
+        this.pause();
+        this.state.timeLeft = this.state.totalTime;
+        document.getElementById('btn-toggle-text').textContent = 'Iniciar Sesión';
+        document.getElementById('timer-status-hint').innerHTML = '<i class="ph-fill ph-circle text-[8px] text-accent-emerald"></i> Listo para comenzar';
+        this.updateDisplay();
+        soundSystem.playPing();
+      },
+
+      skip() {
+        this.onComplete();
+      },
+
+      tick() {
+        if (this.state.timeLeft > 0) {
+          this.state.timeLeft--;
+          if (this.state.mode === 'work' && this.state.timeLeft % 60 === 0) {
+            this.state.totalFocusMinutes++;
+            this.saveState();
+          }
+          this.updateDisplay();
+        } else {
+          this.onComplete();
+        }
+      },
+
+      onComplete() {
+        this.pause();
+        const wasWork = this.state.mode === 'work';
+        
+        // Reproducir alarma sonora audible Web Audio
+        soundSystem.playAlarm(!wasWork);
+
+        if (wasWork) {
+          this.state.sessionsCompleted++;
+          this.saveState();
+          showToast('¡Tiempo Cumplido!', 'Excelente trabajo. Es momento de relajarse un poco.', 'warning');
+          // Switch to short break (or long break every 4 sessions)
+          const nextBreak = (this.state.sessionsCompleted % 4 === 0) ? 'long' : 'short';
+          this.setMode(nextBreak, false);
+        } else {
+          showToast('¡Descanso Finalizado!', 'Cuerpo y mente recargados. A por el siguiente bloque de enfoque.', 'success');
+          this.setMode('work', false);
+        }
+      },
+
+      updateDisplay() {
+        const m = Math.floor(this.state.timeLeft / 60);
+        const s = this.state.timeLeft % 60;
+        const formatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        document.getElementById('timer-display').textContent = formatted;
+
+        // Circular progress calculation
+        const circle = document.getElementById('timer-circle-progress');
+        const progress = (this.state.totalTime - this.state.timeLeft) / this.state.totalTime;
+        const offset = this.circumference - (progress * this.circumference);
+        circle.style.strokeDashoffset = offset;
+
+        // Stats
+        document.getElementById('stat-sessions').textContent = this.state.sessionsCompleted;
+        document.getElementById('stat-focus-time').textContent = `${this.state.totalFocusMinutes}m`;
+      }
+    };
+
+    // --- 5. SCHEDULE BLOCKS MODULE (SELECTOR DE RANGOS HORARIOS) ---
+    const ScheduleManager = {
+      blocks: [],
+
+      init() {
+        this.load();
+        this.bind();
+        this.render();
+      },
+
+      load() {
+        const stored = localStorage.getItem('life_tracker_schedule');
+        if (stored) {
+          try { this.blocks = JSON.parse(stored); } catch(e) { this.blocks = []; }
+        } else {
+          // Bloques por defecto para dar un excelente punto de partida funcional
+          this.blocks = [
+            { id: '1', title: 'Programación DAM (Android & Flutter)', start: '09:00', end: '11:00', cat: 'estudio', color: 'indigo' },
+            { id: '2', title: 'Descanso & Almuerzo saludable', start: '11:00', end: '11:30', cat: 'descanso', color: 'emerald' },
+            { id: '3', title: 'Desarrollo Web & Proyectos Frontend', start: '11:30', end: '14:00', cat: 'trabajo', color: 'indigo' },
+            { id: '4', title: 'Entrenamiento físico / Gym', start: '19:00', end: '20:15', cat: 'ejercicio', color: 'amber' }
+          ];
+          this.save();
+        }
+      },
+
+      save() {
+        localStorage.setItem('life_tracker_schedule', JSON.stringify(this.blocks));
+      },
+
+      bind() {
+        const formContainer = document.getElementById('schedule-form-container');
+        const openBtn = document.getElementById('open-new-block-btn');
+        const cancelBtn = document.getElementById('schedule-cancel-btn');
+        const form = document.getElementById('schedule-form');
+
+        openBtn.addEventListener('click', () => {
+          form.reset();
+          document.getElementById('schedule-edit-id').value = '';
+          document.getElementById('schedule-form-title').innerHTML = '<i class="ph ph-plus-circle text-brand-400"></i> Añadir Rango Horario';
+          formContainer.classList.remove('hidden');
+        });
+
+        cancelBtn.addEventListener('click', () => {
+          formContainer.classList.add('hidden');
+        });
+
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const editId = document.getElementById('schedule-edit-id').value;
+          const title = document.getElementById('schedule-title').value.trim();
+          const start = document.getElementById('schedule-start').value;
+          const end = document.getElementById('schedule-end').value;
+          const cat = document.getElementById('schedule-cat').value;
+          const color = document.querySelector('input[name="block-color"]:checked')?.value || 'indigo';
+
+          if (editId) {
+            const idx = this.blocks.findIndex(b => b.id === editId);
+            if (idx !== -1) {
+              this.blocks[idx] = { id: editId, title, start, end, cat, color };
+              showToast('Bloque Actualizado', 'El rango horario se ha modificado correctamente', 'success');
+            }
+          } else {
+            const newBlock = { id: Date.now().toString(), title, start, end, cat, color };
+            this.blocks.push(newBlock);
+            showToast('Bloque Creado', `Añadido: ${start} - ${end}`, 'success');
+          }
+
+          // Sort blocks chronologically by start time
+          this.blocks.sort((a, b) => a.start.localeCompare(b.start));
+          this.save();
+          this.render();
+          formContainer.classList.add('hidden');
+        });
+      },
+
+      edit(id) {
+        const block = this.blocks.find(b => b.id === id);
+        if (!block) return;
+        document.getElementById('schedule-edit-id').value = block.id;
+        document.getElementById('schedule-title').value = block.title;
+        document.getElementById('schedule-start').value = block.start;
+        document.getElementById('schedule-end').value = block.end;
+        document.getElementById('schedule-cat').value = block.cat;
+        
+        const radio = document.querySelector(`input[name="block-color"][value="${block.color}"]`);
+        if (radio) radio.checked = true;
+
+        document.getElementById('schedule-form-title').innerHTML = '<i class="ph ph-pencil-simple text-brand-400"></i> Editar Rango Horario';
+        document.getElementById('schedule-form-container').classList.remove('hidden');
+      },
+
+      delete(id) {
+        this.blocks = this.blocks.filter(b => b.id !== id);
+        this.save();
+        this.render();
+        showToast('Bloque Eliminado', 'Se ha retirado de tu cronograma diario', 'info');
+      },
+
+      render() {
+        const list = document.getElementById('schedule-list');
+        document.getElementById('schedule-count').textContent = `${this.blocks.length} actividades`;
+
+        if (this.blocks.length === 0) {
+          list.innerHTML = `
+            <div class="py-8 text-center text-slate-500">
+              <i class="ph ph-calendar-x text-3xl mb-1"></i>
+              <p class="text-xs">No tienes bloques horarios definidos hoy.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const colorMap = {
+          indigo: 'border-l-indigo-500 bg-indigo-500/10 text-indigo-300',
+          emerald: 'border-l-emerald-500 bg-emerald-500/10 text-emerald-300',
+          amber: 'border-l-amber-500 bg-amber-500/10 text-amber-300',
+          rose: 'border-l-rose-500 bg-rose-500/10 text-rose-300'
+        };
+
+        list.innerHTML = this.blocks.map(b => `
+          <div class="flex items-center justify-between p-3.5 bg-darkBg/90 border border-borderSubtle border-l-4 ${colorMap[b.color] || colorMap.indigo} rounded-xl hover:border-slate-600 transition group">
+            <div class="flex items-center gap-3">
+              <div class="font-mono text-xs font-bold text-white bg-cardBg px-2.5 py-1.5 rounded-lg border border-borderSubtle">
+                ${b.start} - ${b.end}
+              </div>
+              <div>
+                <h4 class="text-sm font-semibold text-white">${b.title}</h4>
+                <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 capitalize">${b.cat}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 opacity-90 group-hover:opacity-100">
+              <button onclick="ScheduleManager.edit('${b.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                <i class="ph ph-pencil-simple text-base"></i>
+              </button>
+              <button onclick="ScheduleManager.delete('${b.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition">
+                <i class="ph ph-trash text-base"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+    };
+
+    // --- 6. TASK MANAGER MODULE (TO-DO / AGENDA CRUD) ---
+    const TaskManager = {
+      tasks: [],
+      currentFilter: 'all',
+      searchQuery: '',
+
+      init() {
+        this.load();
+        this.bind();
+        this.render();
+      },
+
+      load() {
+        const stored = localStorage.getItem('life_tracker_tasks');
+        if (stored) {
+          try { this.tasks = JSON.parse(stored); } catch(e) { this.tasks = []; }
+        } else {
+          // Tareas de demostración funcionales iniciales
+          this.tasks = [
+            { id: '101', title: 'Diseñar interfaz gráfica en Android Studio', desc: 'Implementar ConstraintLayout con modo oscuro', due: '2025-05-10T18:00', priority: 'alta', completed: false },
+            { id: '102', title: 'Revisar apuntes de bases de datos relacionales', desc: 'Consultas SQL con JOINs y agrupaciones', due: '2025-05-12T12:00', priority: 'media', completed: true },
+            { id: '103', title: 'Planificar sesiones de Pomodoro para el fin de semana', desc: 'Establecer metas de 4 bloques de 25 min', due: '', priority: 'baja', completed: false }
+          ];
+          this.save();
+        }
+      },
+
+      save() {
+        localStorage.setItem('life_tracker_tasks', JSON.stringify(this.tasks));
+      },
+
+      bind() {
+        const formContainer = document.getElementById('task-form-container');
+        const openBtn = document.getElementById('open-new-task-btn');
+        const cancelBtn = document.getElementById('task-cancel-btn');
+        const form = document.getElementById('task-form');
+
+        openBtn.addEventListener('click', () => {
+          form.reset();
+          document.getElementById('task-edit-id').value = '';
+          document.getElementById('task-form-title').innerHTML = '<i class="ph ph-plus-circle text-brand-400"></i> Añadir Nueva Tarea';
+          formContainer.classList.remove('hidden');
+        });
+
+        cancelBtn.addEventListener('click', () => {
+          formContainer.classList.add('hidden');
+        });
+
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const editId = document.getElementById('task-edit-id').value;
+          const title = document.getElementById('task-title').value.trim();
+          const desc = document.getElementById('task-desc').value.trim();
+          const due = document.getElementById('task-due').value;
+          const priority = document.getElementById('task-priority').value;
+
+          if (editId) {
+            const idx = this.tasks.findIndex(t => t.id === editId);
+            if (idx !== -1) {
+              this.tasks[idx] = { ...this.tasks[idx], title, desc, due, priority };
+              showToast('Tarea Actualizada', 'Los cambios se han guardado con éxito', 'success');
+            }
+          } else {
+            const newTask = {
+              id: Date.now().toString(),
+              title,
+              desc,
+              due,
+              priority,
+              completed: false,
+              createdAt: new Date().toISOString()
+            };
+            this.tasks.unshift(newTask);
+            showToast('Tarea Añadida', `"${title}" ha sido agregada a la agenda`, 'success');
+          }
+
+          this.save();
+          this.render();
+          formContainer.classList.add('hidden');
+        });
+
+        // Filter tabs
+        document.querySelectorAll('.task-filter-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.currentFilter = btn.dataset.filter;
+            document.querySelectorAll('.task-filter-btn').forEach(b => {
+              if (b === btn) {
+                b.className = 'task-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-brand-600 transition';
+              } else {
+                b.className = 'task-filter-btn flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+              }
+            });
+            this.render();
+          });
+        });
+
+        // Search input
+        document.getElementById('task-search-input').addEventListener('input', (e) => {
+          this.searchQuery = e.target.value.toLowerCase();
+          this.render();
+        });
+      },
+
+      toggleStatus(id) {
+        const task = this.tasks.find(t => t.id === id);
+        if (task) {
+          task.completed = !task.completed;
+          soundSystem.playPing();
+          showToast(task.completed ? 'Tarea Completada 🎉' : 'Tarea Marcada Pendiente', task.title, 'success');
+          this.save();
+          this.render();
+        }
+      },
+
+      edit(id) {
+        const task = this.tasks.find(t => t.id === id);
+        if (!task) return;
+        document.getElementById('task-edit-id').value = task.id;
+        document.getElementById('task-title').value = task.title;
+        document.getElementById('task-desc').value = task.desc || '';
+        document.getElementById('task-due').value = task.due || '';
+        document.getElementById('task-priority').value = task.priority || 'media';
+
+        document.getElementById('task-form-title').innerHTML = '<i class="ph ph-note-pencil text-brand-400"></i> Editar Tarea';
+        document.getElementById('task-form-container').classList.remove('hidden');
+      },
+
+      delete(id) {
+        this.tasks = this.tasks.filter(t => t.id !== id);
+        this.save();
+        this.render();
+        showToast('Tarea Eliminada', 'Se ha retirado de tu lista de actividades', 'info');
+      },
+
+      render() {
+        const list = document.getElementById('tasks-list');
+        
+        // Counters
+        const pendingCount = this.tasks.filter(t => !t.completed).length;
+        const completedCount = this.tasks.filter(t => t.completed).length;
+        document.getElementById('count-all').textContent = this.tasks.length;
+        document.getElementById('count-pending').textContent = pendingCount;
+        document.getElementById('count-completed').textContent = completedCount;
+
+        // Filtering
+        let filtered = this.tasks.filter(task => {
+          if (this.currentFilter === 'pending') return !task.completed;
+          if (this.currentFilter === 'completed') return task.completed;
+          return true;
+        });
+
+        if (this.searchQuery) {
+          filtered = filtered.filter(t => 
+            t.title.toLowerCase().includes(this.searchQuery) || 
+            (t.desc && t.desc.toLowerCase().includes(this.searchQuery))
+          );
+        }
+
+        if (filtered.length === 0) {
+          list.innerHTML = `
+            <div class="bg-cardBg border border-borderSubtle rounded-2xl p-8 text-center text-slate-500">
+              <i class="ph ph-clipboard-text text-4xl mb-2 text-slate-600 block"></i>
+              <p class="text-sm font-medium text-slate-400">No se encontraron tareas</p>
+              <p class="text-xs text-slate-500 mt-1">Crea una nueva tarea o prueba con otro filtro.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const priorityBadges = {
+          alta: '<span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">Alta</span>',
+          media: '<span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Media</span>',
+          baja: '<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Baja</span>'
+        };
+
+        list.innerHTML = filtered.map(t => {
+          const isDone = t.completed;
+          const dueDisplay = t.due ? new Date(t.due).toLocaleString('es-ES', { 
+            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+          }) : null;
+
+          return `
+            <div class="bg-cardBg border border-borderSubtle rounded-2xl p-4 flex items-start gap-3 transition-all hover:border-slate-700 ${isDone ? 'opacity-65' : ''}">
+              <button onclick="TaskManager.toggleStatus('${t.id}')" class="mt-0.5 w-6 h-6 rounded-lg border ${isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-600 hover:border-brand-500 text-transparent'} flex items-center justify-center transition flex-shrink-0">
+                <i class="ph-bold ph-check text-xs"></i>
+              </button>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                  <h4 class="text-sm font-semibold text-white ${isDone ? 'line-through text-slate-400' : ''} truncate">
+                    ${t.title}
+                  </h4>
+                  ${priorityBadges[t.priority] || priorityBadges.media}
+                </div>
+                ${t.desc ? `<p class="text-xs text-slate-400 mb-2 leading-relaxed">${t.desc}</p>` : ''}
+                
+                ${dueDisplay ? `
+                  <div class="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 bg-darkBg px-2 py-0.5 rounded-md border border-borderSubtle">
+                    <i class="ph ph-calendar text-xs text-brand-400"></i> ${dueDisplay}
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button onclick="TaskManager.edit('${t.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                  <i class="ph ph-pencil-simple text-base"></i>
+                </button>
+                <button onclick="TaskManager.delete('${t.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition">
+                  <i class="ph ph-trash text-base"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    };
+
+    // --- 7. SLEEP CALCULATOR & LOG MODULE ---
+    const SleepTracker = {
+      history: [],
+
+      init() {
+        this.load();
+        this.bind();
+        this.renderHistory();
+      },
+
+      load() {
+        const stored = localStorage.getItem('life_tracker_sleep');
+        if (stored) {
+          try { this.history = JSON.parse(stored); } catch(e) { this.history = []; }
+        } else {
+          // Registros iniciales de ejemplo
+          this.history = [
+            { id: '1', date: 'Ayer', bedtime: '23:30', waketime: '07:15', hours: 7, minutes: 45, note: 'Buen descanso nocturno' },
+            { id: '2', date: 'Hace 2 días', bedtime: '00:15', waketime: '08:00', hours: 7, minutes: 45, note: 'Dormido tras estudiar DAM' }
+          ];
+          this.save();
+        }
+      },
+
+      save() {
+        localStorage.setItem('life_tracker_sleep', JSON.stringify(this.history));
+      },
+
+      calculateDiff(bedtimeStr, waketimeStr) {
+        const [bH, bM] = bedtimeStr.split(':').map(Number);
+        const [wH, wM] = waketimeStr.split(':').map(Number);
+
+        let bedMinutes = bH * 60 + bM;
+        let wakeMinutes = wH * 60 + wM;
+
+        // If wake time is less than or equal to bedtime, crosses midnight
+        if (wakeMinutes <= bedMinutes) {
+          wakeMinutes += 24 * 60;
+        }
+
+        const diffMinutes = wakeMinutes - bedMinutes;
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        return { hours, minutes, totalMinutes: diffMinutes };
+      },
+
+      bind() {
+        const form = document.getElementById('sleep-calc-form');
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const bedtime = document.getElementById('sleep-bedtime').value;
+          const waketime = document.getElementById('sleep-waketime').value;
+          const note = document.getElementById('sleep-note').value.trim();
+
+          const calc = this.calculateDiff(bedtime, waketime);
+          
+          // Feedback evaluation
+          let feedback = '';
+          if (calc.hours >= 7 && calc.hours <= 9) {
+            feedback = 'Duración ideal para una excelente salud cognitiva y energía.';
+          } else if (calc.hours < 7) {
+            feedback = 'Por debajo de las 7h recomendadas. Considera descansar más hoy.';
+          } else {
+            feedback = 'Más de 9 horas. Excelente recarga física.';
+          }
+
+          // Update display card
+          document.getElementById('sleep-result-text').textContent = `Has dormido ${calc.hours} horas y ${calc.minutes} minutos`;
+          document.getElementById('sleep-feedback').textContent = feedback;
+          
+          const cycles = (calc.totalMinutes / 90).toFixed(1);
+          document.getElementById('sleep-cycles-badge').textContent = `~${cycles} ciclos (90m)`;
+
+          // Save record
+          const record = {
+            id: Date.now().toString(),
+            date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+            bedtime,
+            waketime,
+            hours: calc.hours,
+            minutes: calc.minutes,
+            note
+          };
+          this.history.unshift(record);
+          this.save();
+          this.renderHistory();
+
+          soundSystem.playPing();
+          showToast('Registro de Sueño Guardado', `Duración: ${calc.hours}h ${calc.minutes}m`, 'success');
+        });
+
+        document.getElementById('clear-sleep-history-btn').addEventListener('click', () => {
+          if (confirm('¿Deseas vaciar el historial de sueño?')) {
+            this.history = [];
+            this.save();
+            this.renderHistory();
+            showToast('Historial Vaciado', 'Se han eliminado los registros de sueño', 'info');
+          }
+        });
+      },
+
+      delete(id) {
+        this.history = this.history.filter(h => h.id !== id);
+        this.save();
+        this.renderHistory();
+      },
+
+      renderHistory() {
+        const list = document.getElementById('sleep-history-list');
+        if (this.history.length === 0) {
+          list.innerHTML = `
+            <div class="py-6 text-center text-slate-500 text-xs">
+              No hay registros de sueño guardados aún.
+            </div>
+          `;
+          return;
+        }
+
+        list.innerHTML = this.history.map(item => `
+          <div class="flex items-center justify-between p-3 bg-darkBg/80 border border-borderSubtle rounded-xl hover:border-slate-700 transition">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs">
+                <i class="ph ph-moon"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white">${item.hours}h ${item.minutes}m dormidos</span>
+                  <span class="text-[10px] font-mono text-slate-400 bg-cardBg px-1.5 py-0.5 rounded border border-borderSubtle">${item.bedtime} → ${item.waketime}</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-[11px] text-slate-500">${item.date}</span>
+                  ${item.note ? `<span class="text-[11px] text-slate-400 italic">• ${item.note}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <button onclick="SleepTracker.delete('${item.id}')" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 transition">
+              <i class="ph ph-trash text-sm"></i>
+            </button>
+          </div>
+        `).join('');
+      }
+    };
+
+    // --- INITIALIZE APPLICATION ON LOAD ---
+    document.addEventListener('DOMContentLoaded', () => {
+      Pomodoro.init();
+      ScheduleManager.init();
+      TaskManager.init();
+      SleepTracker.init();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pomodoro &amp; Life Tracker - con Calendario</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css" rel="stylesheet"/>
+<link href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/fill/style.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fff7ed', 100: '#ffedd5', 400: '#fb923c', 500: '#f97316', 600: '#ea580c' },
+            warmBg: '#FAF9F6'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #fff7ed; }
+    ::-webkit-scrollbar-thumb { background: #fb923c; border-radius: 9999px; }
+    @keyframes subtlePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+    .timer-running { animation: subtlePulse 2.5s infinite ease-in-out; }
+  </style>
+</head>
+<body class="bg-[#FAF9F6] text-gray-900 min-h-screen flex flex-col font-sans selection:bg-orange-500 selection:text-white pb-24 md:pb-8 relative">
+<!-- GLOBAL HEALTHY LIFESTYLE BACKGROUND -->
+<img alt="Estilo de Vida Saludable" class="fixed inset-0 w-full h-full object-cover -z-20 pointer-events-none opacity-35" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_269w1iGDILqTONIOCuzPJDHdKL7g-KVZgUER6QlwRomUv9J7A4dfBJVzNWxJzOoTh5DQo8DoLo5u0NJYDLFogTMjFwHUsnM9SzhhzeH6T5dfGXVNXXuLJ2QKxrWHe0kALi_YgU7aQ1dmbBbIdFMU8Bs4Bmus3RgRibit9URsW3ibBOODSJGNGxJJkf00wD67k3cSH0KNeNQ_Latp5VywzYFoJJBBc4HjhQSf8LTJ"/>
+<div class="fixed inset-0 bg-white/60 -z-10 backdrop-blur-[0.5px] pointer-events-none"></div>
+<!-- Toast Container -->
+<div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none w-11/12 max-w-sm" id="toast-container"></div>
+<!-- Top Bar -->
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-2 border-orange-400 px-4 py-3 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/25 border border-orange-400">
+<i class="ph-fill ph-timer text-2xl"></i>
+</div>
+<div>
+<h1 class="text-base font-extrabold tracking-tight text-gray-950 flex items-center gap-1.5 leading-none">
+        LifeTracker <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-400">Pro</span>
+</h1>
+<p class="text-xs text-stone-700 font-medium mt-0.5">Productividad &amp; Balance Diario</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-9 h-9 rounded-xl bg-white border-2 border-orange-400 hover:text-orange-600 flex items-center justify-center text-lg transition active:scale-95 shadow-sm text-orange-500" id="sound-test-btn" title="Probar sonido">
+<i class="ph-bold ph-speaker-high"></i>
+</button>
+<div class="h-6 w-px bg-orange-300 mx-0.5 hidden sm:block"></div>
+<span class="hidden sm:inline-flex text-xs font-mono font-bold text-gray-900 bg-orange-50 px-3 py-1.5 rounded-xl border-2 border-orange-400 shadow-sm" id="current-time-badge">--:--:--</span>
+</div>
+</header>
+<!-- Main Container -->
+<main class="flex-1 w-full max-w-5xl mx-auto px-4 py-4 md:py-6 flex flex-col relative z-10">
+<!-- Navigation Switcher with CALENDARIO -->
+<nav class="hidden md:flex items-center gap-1.5 p-1.5 bg-white/85 backdrop-blur-md border-2 border-orange-400 rounded-2xl mb-6 shadow-sm overflow-x-auto">
+<button class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-white bg-orange-500 shadow-sm border border-orange-500 whitespace-nowrap" data-target="tab-pomodoro">
+<i class="ph-fill ph-timer text-lg"></i>
+<span class="">Pomodoro &amp; Rutina</span>
+</button>
+<button class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-stone-700 hover:text-orange-700 hover:bg-orange-50 border border-transparent whitespace-nowrap" data-target="tab-schedule">
+<i class="ph-bold ph-calendar-blank text-lg"></i>
+<span class="">Bloques Horarios</span>
+</button>
+<button class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-stone-700 hover:text-orange-700 hover:bg-orange-50 border border-transparent whitespace-nowrap" data-target="tab-tasks">
+<i class="ph-bold ph-check-square-offset text-lg"></i>
+<span class="">Gestor de Tareas</span>
+</button>
+<button class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-stone-700 hover:text-orange-700 hover:bg-orange-50 border border-transparent whitespace-nowrap" data-target="tab-sleep">
+<i class="ph-bold ph-moon-stars text-lg"></i>
+<span class="">Control de Sueño</span>
+</button>
+<button class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-stone-700 hover:text-orange-700 hover:bg-orange-50 border border-transparent whitespace-nowrap" data-target="tab-calendar">
+<i class="ph-bold ph-calendar-dots text-lg"></i>
+<span class="">Calendario</span>
+</button>
+<button class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-stone-700 hover:text-orange-700 hover:bg-orange-50 border border-transparent whitespace-nowrap" data-target="tab-comparar"><i class="ph-bold ph-sliders text-lg"></i><span class="">Comparar</span></button></nav>
+<!-- TAB 1: POMODORO -->
+<section class="tab-pane active flex flex-col gap-6" id="tab-pomodoro">
+<div class="grid grid-cols-3 gap-3">
+<div class="bg-white/85 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-3.5 text-center shadow-sm">
+<span class="text-[11px] font-bold text-stone-900 uppercase tracking-wider block">Sesiones Hoy</span>
+<span class="text-2xl font-black text-gray-950 mt-0.5 block" id="stat-sessions">0</span>
+</div>
+<div class="bg-white/85 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-3.5 text-center shadow-sm">
+<span class="text-[11px] font-bold text-stone-900 uppercase tracking-wider block">Tiempo Foco</span>
+<span class="text-2xl font-black text-orange-600 mt-0.5 block" id="stat-focus-time">0m</span>
+</div>
+<div class="bg-white/85 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-3.5 text-center shadow-sm">
+<span class="text-[11px] font-bold text-stone-900 uppercase tracking-wider block">Racha Actual</span>
+<span class="text-2xl font-black text-emerald-700 mt-0.5 flex items-center justify-center gap-1" id="stat-streak"><i class="ph-fill ph-fire text-amber-500"></i> 0</span>
+</div>
+</div>
+<!-- Pomodoro Panel with Sand Timer / Hourglass Background -->
+<div class="bg-white/70 backdrop-blur-md border-2 border-orange-400 rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden shadow-md">
+<!-- Hourglass Background semi-opaque -->
+<img alt="Reloj de Arena" class="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none rounded-3xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxrDe166N49xQ5LIBPnsDJIq5pYvCsQqATW-qKQw6GPJqVtr5dlebph_8vq9PsqmQiMdBpqtkdurSTkekBz8z6IA_iKNeDHDWamqSUuUteJ5Ew9o5S12bH-MhKuKibp9AFiazDp1X-4x4qz2XgJMadiWWrENngRYO-jMDOwKO5RtQRA8oNpnHOQQwggr_J3Qmxr-9temy34jttNoLlRXuWQqr_Pg8s5S7ETdYKS4NC"/>
+<div class="absolute inset-0 bg-white/50 pointer-events-none rounded-3xl"></div>
+<div class="flex items-center gap-2 p-1.5 bg-orange-50/90 border-2 border-orange-400 rounded-2xl mb-8 z-10 w-full justify-center shadow-sm backdrop-blur-sm relative max-w-sm"><button class="w-8 h-8 rounded-full bg-white border-2 border-orange-400 text-orange-600 hover:bg-orange-50 flex items-center justify-center transition active:scale-95 shadow-sm flex-shrink-0" id="mode-prev-btn" title="Modo anterior"><svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path></svg></button><div class="flex items-center gap-1 flex-1"><button class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500 whitespace-nowrap" id="mode-work">Enfoque</button><button class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition text-stone-700 hover:text-orange-700 hover:bg-orange-100 whitespace-nowrap" id="mode-short">Descanso Corto</button><button class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition text-stone-700 hover:text-orange-700 hover:bg-orange-100 whitespace-nowrap" id="mode-long">Descanso Largo</button></div><button class="w-8 h-8 rounded-full bg-white border-2 border-orange-400 text-orange-600 hover:bg-orange-50 flex items-center justify-center transition active:scale-95 shadow-sm flex-shrink-0" id="mode-next-btn" title="Modo siguiente"><svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div>
+<div class="relative w-64 h-64 flex items-center justify-center my-2 z-10">
+<svg class="w-full h-full -rotate-90 transform drop-shadow-sm" viewbox="0 0 240 240">
+<circle class="text-orange-100/90" cx="120" cy="120" fill="white" fill-opacity="0.85" r="102" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-orange-500 transition-all duration-300" cx="120" cy="120" fill="none" id="timer-circle-progress" r="102" stroke="currentColor" stroke-dasharray="640.88" stroke-dashoffset="0" stroke-linecap="round" stroke-width="12" style="stroke-dashoffset: 640.885px;"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="text-xs uppercase font-extrabold tracking-widest px-3 py-1 rounded-full bg-orange-100 text-orange-800 border border-orange-400 mb-1 shadow-sm" id="timer-tag">Foco Activo</span>
+<div class="text-5xl md:text-6xl font-black font-mono tracking-tight text-gray-950 my-1" id="timer-display">25:00</div>
+<p class="text-xs text-stone-800 font-bold flex items-center gap-1.5 mt-1 bg-white/90 px-2 py-0.5 rounded-full border border-orange-200" id="timer-status-hint">
+<i class="ph-fill ph-circle text-[8px] text-emerald-600 animate-ping"></i> Listo para comenzar
+          </p>
+</div>
+</div>
+<div class="flex items-center gap-4 mt-8 w-full max-w-sm justify-center z-10 relative">
+<button class="w-12 h-12 rounded-2xl bg-white border-2 border-orange-400 text-stone-800 hover:text-orange-600 hover:bg-orange-50 flex items-center justify-center text-xl transition active:scale-95 shadow-sm" id="btn-reset" title="Reiniciar">
+<i class="ph-bold ph-arrow-counter-clockwise"></i>
+</button>
+<button class="flex-1 py-4 px-6 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-base shadow-lg shadow-orange-500/30 border-2 border-orange-500 flex items-center justify-center gap-2.5 transition active:scale-98" id="btn-toggle">
+<i class="ph-fill ph-play text-xl" id="btn-toggle-icon"></i>
+<span class="" id="btn-toggle-text">Iniciar Sesión</span>
+</button>
+<button class="w-12 h-12 rounded-2xl bg-white border-2 border-orange-400 text-stone-800 hover:text-orange-600 hover:bg-orange-50 flex items-center justify-center text-xl transition active:scale-95 shadow-sm" id="btn-skip" title="Saltar ciclo">
+<i class="ph-bold ph-fast-forward"></i>
+</button>
+</div>
+<div class="w-full max-w-md mt-8 pt-6 border-t-2 border-orange-300 z-10 relative">
+<div class="flex items-center justify-between mb-3">
+<span class="text-sm font-bold text-gray-900 flex items-center gap-2">
+<i class="ph-bold ph-sliders text-orange-500"></i> Ajustar Tiempos (Minutos)
+          </span>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<div class="bg-white/80 backdrop-blur-sm p-2.5 rounded-xl border-2 border-orange-300">
+<label class="block text-[11px] font-bold text-stone-700 mb-1">Trabajo</label>
+<input class="w-full bg-transparent text-gray-950 font-black font-mono text-sm focus:outline-none" id="input-work-min" type="number" value="25"/>
+</div>
+<div class="bg-white/80 backdrop-blur-sm p-2.5 rounded-xl border-2 border-orange-300">
+<label class="block text-[11px] font-bold text-stone-700 mb-1">Descanso</label>
+<input class="w-full bg-transparent text-gray-950 font-black font-mono text-sm focus:outline-none" id="input-short-min" type="number" value="5"/>
+</div>
+<div class="bg-white/80 backdrop-blur-sm p-2.5 rounded-xl border-2 border-orange-300">
+<label class="block text-[11px] font-bold text-stone-700 mb-1">D. Largo</label>
+<input class="w-full bg-transparent text-gray-950 font-black font-mono text-sm focus:outline-none" id="input-long-min" type="number" value="15"/>
+</div>
+</div>
+<button class="w-full mt-3 py-2 px-3 bg-orange-100 hover:bg-orange-200 text-xs font-bold text-orange-800 rounded-xl transition border-2 border-orange-400 shadow-sm" id="save-durations-btn">
+          Guardar Configuración de Tiempos
+        </button>
+</div>
+</div>
+</section>
+<!-- TAB 2: BLOQUES HORARIOS -->
+<section class="tab-pane hidden flex-col gap-6 relative" id="tab-schedule">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border-2 border-orange-400 shadow-sm">
+<div>
+<h2 class="text-lg font-extrabold text-gray-950 flex items-center gap-2">
+<i class="ph-fill ph-calendar text-orange-500"></i> Bloques Horarios del Día
+        </h2>
+<p class="text-xs text-stone-700 font-medium">Estructura tu jornada en rangos de tiempo definidos.</p>
+</div>
+<button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-extrabold transition shadow border border-orange-500 active:scale-95" id="open-new-block-btn">
+<i class="ph-bold ph-plus text-sm"></i> Nuevo Bloque
+      </button>
+</div>
+<!-- Add Schedule Form -->
+<div class="bg-white/95 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-4 hidden shadow-md z-20" id="schedule-form-container">
+<h3 class="text-sm font-extrabold text-gray-950 mb-3 flex items-center gap-2" id="schedule-form-title">
+<i class="ph-bold ph-clock text-orange-500"></i> Añadir Rango Horario
+      </h3>
+<form class="space-y-3" id="schedule-form">
+<input id="schedule-edit-id" type="hidden" value=""/>
+<div>
+<label class="block text-xs font-bold text-stone-800 mb-1">Título</label>
+<input class="w-full px-3.5 py-2 bg-orange-50/50 border-2 border-orange-300 rounded-xl text-sm font-medium focus:outline-none focus:border-orange-500" id="schedule-title" placeholder="ej. 09:00 - 11:00 Sesión de Estudio" required="" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block text-xs font-bold text-stone-800 mb-1">Hora Inicio</label>
+<input class="w-full px-3 py-2 bg-orange-50/50 border-2 border-orange-300 rounded-xl text-sm font-bold focus:outline-none focus:border-orange-500" id="schedule-start" required="" type="time"/>
+</div>
+<div>
+<label class="block text-xs font-bold text-stone-800 mb-1">Hora Fin</label>
+<input class="w-full px-3 py-2 bg-orange-50/50 border-2 border-orange-300 rounded-xl text-sm font-bold focus:outline-none focus:border-orange-500" id="schedule-end" required="" type="time"/>
+</div>
+</div>
+<div class="flex items-center justify-end gap-2 pt-2">
+<button class="px-3.5 py-1.5 text-xs font-bold text-stone-700 bg-white border border-stone-300 rounded-xl hover:bg-stone-50" id="schedule-cancel-btn" type="button">Cancelar</button>
+<button class="px-5 py-1.5 text-xs font-extrabold text-white bg-orange-500 hover:bg-orange-600 rounded-xl border border-orange-500 shadow" type="submit">Guardar Bloque</button>
+</div>
+</form>
+</div>
+<!-- Schedule List with Calendar BG -->
+<div class="bg-white/70 backdrop-blur-md border-2 border-orange-400 rounded-3xl p-5 md:p-6 relative overflow-hidden shadow-md">
+<!-- Desk Calendar background semi-opaque -->
+<img alt="Calendario" class="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none rounded-3xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2ZT_l-0wboOVEnpL8358Qo3ObvsQNC0JM4il-ce0Ny-V8ZUFBn9N8f77Z0hThe7ESXPyzfVDxefvy_70b2LLHQ-7rmZMu8YnEDWlfnj8mNEc6pfiXIkY3hZhZZnQjSdiLQKuChMyzFSi4voveuGBJFV01YyRJ5ucPaEEE9EEeXf_fz9t-rmWgqH_O7FNl71yQwof-_b9aVj3H5qv9_xffR_v080MV1J3WTm50XQQk"/>
+<div class="absolute inset-0 bg-white/50 pointer-events-none rounded-3xl"></div>
+<div class="relative z-10 flex items-center justify-between mb-4">
+<span class="text-xs uppercase font-extrabold tracking-wider text-stone-900 bg-white/90 px-3 py-1 rounded-lg border border-orange-300">Cronograma del Día</span>
+<span class="text-xs text-orange-700 font-mono font-bold bg-white/90 px-3 py-1 rounded-lg border border-orange-300" id="schedule-count">0 actividades</span>
+</div>
+<div class="space-y-2.5 relative z-10" id="schedule-list">
+<div class="py-12 px-4 text-center bg-white/90 backdrop-blur-sm border-2 border-dashed border-orange-300 rounded-2xl flex flex-col items-center justify-center gap-2">
+<div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl border border-orange-300 mb-1">
+<i class="ph-bold ph-calendar-blank"></i>
+</div>
+<p class="text-sm font-extrabold text-gray-950">No hay bloques horarios registrados</p>
+<p class="text-xs text-stone-600 max-w-sm">Planifica tu jornada agregando bloques de estudio, reuniones o trabajo en equipo con el botón 'Nuevo Bloque'.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- TAB 3: GESTOR DE TAREAS -->
+<section class="tab-pane hidden flex-col gap-6 relative" id="tab-tasks">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border-2 border-orange-400 shadow-sm">
+<div>
+<h2 class="text-lg font-extrabold text-gray-950 flex items-center gap-2">
+<i class="ph-fill ph-check-circle text-orange-500"></i> Agenda &amp; To-Do
+        </h2>
+<p class="text-xs text-stone-700 font-medium">Gestiona tus entregas, proyectos y tareas pendientes.</p>
+</div>
+<button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-extrabold transition shadow border border-orange-500 active:scale-95" id="open-new-task-btn">
+<i class="ph-bold ph-plus text-sm"></i> Nueva Tarea
+      </button>
+</div>
+<!-- Add Task Form -->
+<div class="bg-white/95 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-4 hidden shadow-lg z-20" id="task-form-container">
+<h3 class="text-sm font-extrabold text-gray-950 mb-3 flex items-center gap-2" id="task-form-title">
+<i class="ph-bold ph-note-pencil text-orange-500"></i> Añadir Nueva Tarea
+      </h3>
+<form class="space-y-3" id="task-form">
+<input id="task-edit-id" type="hidden" value=""/>
+<div>
+<label class="block text-xs font-bold text-stone-800 mb-1">Título de la tarea</label>
+<input class="w-full px-3.5 py-2 bg-orange-50/50 border-2 border-orange-300 rounded-xl text-sm font-medium focus:outline-none focus:border-orange-500" id="task-title" placeholder="ej. Completar informe semanal" required="" type="text"/>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<div>
+<label class="block text-xs font-bold text-stone-800 mb-1">Fecha Límite</label>
+<input class="w-full px-3 py-2 bg-orange-50/50 border-2 border-orange-300 rounded-xl text-sm font-bold focus:outline-none focus:border-orange-500" id="task-due" type="datetime-local"/>
+</div>
+<div>
+<label class="block text-xs font-bold text-stone-800 mb-1">Prioridad</label>
+<select class="w-full px-3 py-2 bg-orange-50/50 border-2 border-orange-300 rounded-xl text-sm font-semibold focus:outline-none focus:border-orange-500" id="task-priority">
+<option value="alta">🔴 Alta</option>
+<option selected="" value="media">🟡 Media</option>
+<option value="baja">🟢 Baja</option>
+</select>
+</div>
+</div>
+<div class="flex items-center justify-end gap-2 pt-2">
+<button class="px-3.5 py-1.5 text-xs font-bold text-stone-700 bg-white border border-stone-300 rounded-xl hover:bg-stone-50" id="task-cancel-btn" type="button">Cancelar</button>
+<button class="px-5 py-1.5 text-xs font-extrabold text-white bg-orange-500 hover:bg-orange-600 rounded-xl border border-orange-500 shadow" type="submit">Guardar Tarea</button>
+</div>
+</form>
+</div>
+<!-- Tasks List with Agenda BG -->
+<div class="bg-white/70 backdrop-blur-md border-2 border-orange-400 rounded-3xl p-5 md:p-6 relative overflow-hidden shadow-md">
+<!-- Agenda image semi-opaque -->
+<img alt="Agenda" class="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none rounded-3xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK_RD78Dugwszq1TEa1JJI4xC_WK_-aoqSqqKx0vKXmez5dIfIULwV3WlG4Xz1FrLfBb1PcFYOfrFFL45O4SlddWkPXCiWJYrlKP1Oq_pDYfJrM1PRKzDoWtV9XXmW4bawzvI95FvPpToxcg8PWEfRCTaAarS-4EwzGtyi2tGUjMn1AOzLqW_QPh2dVVr3O_-Ory8ADtEtz__3iyWoT_69i6iAfl-XtS1-WSOC7dqQ"/>
+<div class="absolute inset-0 bg-white/50 pointer-events-none rounded-3xl"></div>
+<div class="space-y-2.5 relative z-10" id="tasks-list">
+<div class="py-12 px-4 text-center bg-white/90 backdrop-blur-sm border-2 border-dashed border-orange-300 rounded-2xl flex flex-col items-center justify-center gap-2">
+<div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl border border-orange-300 mb-1">
+<i class="ph-bold ph-check-square-offset"></i>
+</div>
+<p class="text-sm font-extrabold text-gray-950">No hay tareas registradas aún</p>
+<p class="text-xs text-stone-600 max-w-sm">Pulsa 'Nueva Tarea' para comenzar a organizar tus pendientes y proyectos del día.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- TAB 4: CONTROL DE SUEÑO -->
+<section class="tab-pane hidden flex-col gap-6 relative" id="tab-sleep">
+<div class="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border-2 border-orange-400 shadow-sm">
+<h2 class="text-lg font-extrabold text-gray-950 flex items-center gap-2">
+<i class="ph-fill ph-moon-stars text-orange-500"></i> Calculadora y Registro de Sueño
+      </h2>
+<p class="text-xs text-stone-700 font-medium">Registra tus horas de descanso nocturno y analiza tus ciclos.</p>
+</div>
+<div class="bg-white/70 backdrop-blur-md border-2 border-orange-400 rounded-3xl p-5 md:p-6 shadow-md relative overflow-hidden">
+<!-- Bedroom image semi-opaque -->
+<img alt="Cama y Dormitorio" class="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none rounded-3xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPpJatyHSX-MQAtNgkIUtdh-q-LpToH_eLwHsdPfnY1rbWHm2huuHTsHtd5bbBwhVhaUxzk5SPjqhl9uhaRMjDpI9OSph00NCjqG5XPMJnUx-e8ZFSnI-of_prGvHHojegeE5_OiQ-MALlnPTcFAJmK7EGNKegGcUQvpscvVU9mpt9PTqeI8h5d1Oc7DB_v5Vrd2HmcR-V5yQ1F1CVVLpXZejabCoFSZKYOiCgtlj9"/>
+<div class="absolute inset-0 bg-white/50 pointer-events-none rounded-3xl"></div>
+<form class="space-y-4 relative z-10" id="sleep-calc-form">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-white/85 backdrop-blur-sm p-4 rounded-2xl border-2 border-orange-300">
+<label class="text-xs font-bold text-orange-950 mb-2 block">Hora en la que te acostaste</label>
+<input class="w-full bg-white text-xl font-black font-mono px-3 py-2 rounded-xl border-2 border-orange-300 focus:outline-none focus:border-orange-500" id="sleep-bedtime" required="" type="time" value="23:00"/>
+</div>
+<div class="bg-white/85 backdrop-blur-sm p-4 rounded-2xl border-2 border-orange-300">
+<label class="text-xs font-bold text-amber-950 mb-2 block">Hora en la que te despertaste</label>
+<input class="w-full bg-white text-xl font-black font-mono px-3 py-2 rounded-xl border-2 border-orange-300 focus:outline-none focus:border-orange-500" id="sleep-waketime" required="" type="time" value="07:00"/>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<input class="flex-1 px-3.5 py-2.5 bg-white/95 backdrop-blur-sm border-2 border-orange-300 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500" id="sleep-note" placeholder="Nota opcional..." type="text"/>
+<button class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl transition shadow border border-orange-500" type="submit">Calcular &amp; Guardar</button>
+</div>
+</form>
+<div class="mt-6 p-4 rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-orange-400 flex items-center justify-between shadow-sm relative z-10" id="sleep-result-card">
+<div>
+<span class="text-[11px] font-bold text-stone-700 uppercase block">Último Cálculo</span>
+<h3 class="text-lg font-black text-gray-950" id="sleep-result-text">Sin registros de sueño aún</h3>
+<p class="text-xs text-stone-500 font-bold mt-0.5" id="sleep-feedback">Introduce tus horas de descanso arriba para calcular los ciclos de sueño.</p>
+</div>
+<div class="text-right font-mono font-bold text-orange-700" id="sleep-cycles-badge">-- ciclos</div>
+</div>
+</div>
+</section>
+<!-- TAB 5: CALENDARIO & HISTORIAL (DÍA, SEMANA, MES, AÑO) -->
+<section class="tab-pane hidden flex-col gap-6 relative" id="tab-calendar">
+<!-- Header with Views Selector -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-4 rounded-2xl border-2 border-orange-400 shadow-sm relative z-10">
+<div>
+<h2 class="text-lg font-extrabold text-gray-950 flex items-center gap-2">
+<i class="ph-fill ph-calendar-dots text-orange-500 text-xl"></i> Calendario &amp; Historial Temporal
+        </h2>
+<p class="text-xs text-stone-700 font-medium">Revisa tus hábitos, pomodoros y metas organizadas por días, semanas, meses y años.</p>
+</div>
+<!-- View selector buttons -->
+<div class="flex items-center gap-1 bg-orange-50 p-1.5 rounded-xl border-2 border-orange-300 self-start sm:self-auto">
+<button class="cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700" data-view="day">Día</button>
+<button class="cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700" data-view="week">Semana</button>
+<button class="cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500" data-view="month">Mes</button>
+<button class="cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700" data-view="year">Año</button>
+</div>
+</div>
+<!-- Navigation Bar for Time Jump -->
+<div class="flex flex-wrap items-center justify-between gap-3 bg-white/90 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-3.5 relative z-10 shadow-sm">
+<div class="flex items-center gap-2">
+<button class="w-9 h-9 rounded-xl bg-orange-50 hover:bg-orange-100 text-gray-800 border-2 border-orange-300 flex items-center justify-center transition active:scale-95" id="cal-prev-btn" title="Anterior">
+<i class="ph-bold ph-caret-left text-base text-orange-700"></i>
+</button>
+<button class="px-3.5 py-1.5 rounded-xl bg-orange-100 hover:bg-orange-200 text-xs font-extrabold text-orange-900 border-2 border-orange-400 transition active:scale-95 shadow-sm" id="cal-today-btn">
+          Hoy
+        </button>
+<button class="w-9 h-9 rounded-xl bg-orange-50 hover:bg-orange-100 text-gray-800 border-2 border-orange-300 flex items-center justify-center transition active:scale-95" id="cal-next-btn" title="Siguiente">
+<i class="ph-bold ph-caret-right text-base text-orange-700"></i>
+</button>
+<span class="text-base md:text-lg font-black text-gray-950 ml-2 tracking-tight" id="cal-period-title">Calendario</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-bold text-stone-800">
+<span class="hidden sm:inline-flex items-center gap-1.5 text-stone-700 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200" id="cal-streak-badge"><i class="ph-fill ph-fire text-amber-500"></i> Racha: 0 días</span>
+<select class="px-2.5 py-1.5 bg-orange-50 border-2 border-orange-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none" id="cal-month-jump">
+<option value="0">Enero</option>
+<option value="1">Febrero</option>
+<option value="2">Marzo</option>
+<option value="3">Abril</option>
+<option value="4">Mayo</option>
+<option value="5">Junio</option>
+<option value="6">Julio</option>
+<option value="7">Agosto</option>
+<option value="8">Septiembre</option>
+<option value="9">Octubre</option>
+<option value="10">Noviembre</option>
+<option value="11">Diciembre</option>
+</select>
+<select class="px-2.5 py-1.5 bg-orange-50 border-2 border-orange-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none" id="cal-year-jump"></select>
+</div>
+</div>
+<!-- Calendar Card Container with Desk Calendar Background -->
+<div class="bg-white/70 backdrop-blur-md border-2 border-orange-400 rounded-3xl p-5 md:p-6 relative overflow-hidden shadow-md">
+<!-- Calendar image semi-opaque -->
+<img alt="Calendario Historial" class="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none rounded-3xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2ZT_l-0wboOVEnpL8358Qo3ObvsQNC0JM4il-ce0Ny-V8ZUFBn9N8f77Z0hThe7ESXPyzfVDxefvy_70b2LLHQ-7rmZMu8YnEDWlfnj8mNEc6pfiXIkY3hZhZZnQjSdiLQKuChMyzFSi4voveuGBJFV01YyRJ5ucPaEEE9EEeXf_fz9t-rmWgqH_O7FNl71yQwof-_b9aVj3H5qv9_xffR_v080MV1J3WTm50XQQk"/>
+<div class="absolute inset-0 bg-white/50 pointer-events-none rounded-3xl"></div>
+<!-- VIEW 1: MONTH (Default) -->
+<div class="cal-subview relative z-10 flex flex-col gap-6" id="cal-view-month-container">
+<div>
+<!-- Days header -->
+<div class="grid grid-cols-7 gap-1 md:gap-2 mb-2 text-center text-[11px] font-black uppercase tracking-wider text-orange-900">
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300">Lun</div>
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300">Mar</div>
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300">Mié</div>
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300">Jue</div>
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300">Vie</div>
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300 text-amber-800">Sáb</div>
+<div class="py-1 bg-white/90 backdrop-blur-sm rounded-lg border border-orange-300 text-amber-800">Dom</div>
+</div>
+<!-- Days Grid -->
+<div class="grid grid-cols-7 gap-1 md:gap-2" id="cal-month-grid"></div>
+</div>
+<!-- Detail Box of selected day -->
+<div class="bg-white/95 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-4 md:p-5 shadow-sm" id="cal-day-detail-box">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-3 border-b-2 border-orange-200 gap-2">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-sm shadow-sm" id="detail-date-badge">1</div>
+<div>
+<h4 class="text-sm font-black text-gray-950" id="detail-date-title">Detalle del Día</h4>
+<p class="text-[11px] text-stone-600 font-medium">Historial registrado en esta fecha</p>
+</div>
+</div>
+<span class="text-xs font-mono font-bold text-orange-700 bg-orange-50 px-3 py-1 rounded-xl border border-orange-300 self-start sm:self-auto" id="detail-productivity-score">Productividad: 0%</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+<div class="p-3 bg-orange-50/90 rounded-xl border-2 border-orange-300">
+<span class="text-[10px] uppercase font-bold text-stone-700 block">Tiempo de Enfoque</span>
+<p class="text-sm font-black text-orange-600 mt-0.5 flex items-center gap-1.5" id="detail-focus-time"><i class="ph-fill ph-timer text-base text-orange-600"></i> 0h 0m (0 pomodoros)</p>
+</div>
+<div class="p-3 bg-emerald-50/90 rounded-xl border-2 border-emerald-300">
+<span class="text-[10px] uppercase font-bold text-stone-700 block">Tareas Realizadas</span>
+<p class="text-sm font-black text-emerald-700 mt-0.5 flex items-center gap-1.5" id="detail-tasks-done"><i class="ph-bold ph-check-circle text-base text-emerald-600"></i> 0 hechas</p>
+</div>
+<div class="p-3 bg-amber-50/90 rounded-xl border-2 border-amber-300">
+<span class="text-[10px] uppercase font-bold text-stone-700 block">Descanso Nocturno</span>
+<p class="text-sm font-black text-amber-800 mt-0.5 flex items-center gap-1.5" id="detail-sleep-time"><i class="ph-fill ph-moon text-base text-amber-600"></i> Sin registro</p>
+</div>
+<div class="p-3 bg-white rounded-xl border-2 border-orange-300">
+<span class="text-[10px] uppercase font-bold text-stone-700 block">Bloques Horarios</span>
+<p class="text-sm font-black text-gray-900 mt-0.5 flex items-center gap-1.5" id="detail-blocks-count"><i class="ph-bold ph-clock text-base text-orange-500"></i> 0 sesiones</p>
+</div>
+</div>
+</div>
+</div>
+<!-- VIEW 2: WEEK -->
+<div class="cal-subview hidden relative z-10 flex-col gap-4" id="cal-view-week-container">
+<div class="flex items-center justify-between bg-white/90 backdrop-blur-sm p-3 rounded-xl border-2 border-orange-300">
+<span class="text-xs font-black uppercase text-gray-900">Resumen Semanal de Metas</span>
+<span class="text-xs font-mono font-bold text-orange-700" id="week-avg-eff">Efectividad promedio: 0%</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="cal-week-cards"></div>
+</div>
+<!-- VIEW 3: DAY -->
+<div class="cal-subview hidden relative z-10 flex-col gap-4" id="cal-view-day-container">
+<div class="flex items-center justify-between bg-white/90 backdrop-blur-sm p-3 rounded-xl border-2 border-orange-300">
+<div class="flex items-center gap-2">
+<i class="ph-bold ph-clock text-orange-600 text-lg"></i>
+<span class="text-xs font-black uppercase text-gray-900">Cronograma del Día</span>
+</div>
+<span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300">Día Seleccionado</span>
+</div>
+<div class="bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-orange-300 p-4 divide-y divide-orange-100 max-h-[460px] overflow-y-auto" id="cal-day-timeline"></div>
+</div>
+<!-- VIEW 4: YEAR -->
+<div class="cal-subview hidden relative z-10 flex-col gap-4" id="cal-view-year-container">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/90 backdrop-blur-sm p-3.5 rounded-xl border-2 border-orange-300">
+<div>
+<h4 class="text-xs font-black uppercase text-gray-950">Matriz Anual de Consistencia (12 Meses)</h4>
+<p class="text-[11px] text-stone-600 font-medium">Revisa el promedio de productividad acumulado a lo largo del año.</p>
+</div>
+<div class="flex items-center gap-2 text-[10px] font-bold text-stone-700">
+<span class="">0%</span>
+<span class="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block"></span>
+<span class="w-3 h-3 rounded bg-orange-300 border border-orange-300 inline-block"></span>
+<span class="w-3 h-3 rounded bg-orange-500 border border-orange-500 inline-block"></span>
+<span class="">100% Foco</span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="cal-year-grid"></div>
+</div>
+</div>
+</section>
+<!-- TAB 6: COMPARAR (Lógica 100% real y dinámica) -->
+<section class="tab-pane hidden flex-col gap-6 relative" id="tab-comparar">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-4 rounded-2xl border-2 border-orange-400 shadow-sm relative z-10">
+<div>
+<h2 class="text-lg font-extrabold text-gray-950 flex items-center gap-2">
+<svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+Comparativa de Rendimiento
+</h2>
+<p class="text-xs text-stone-700 font-medium">Compara el progreso y balance real entre periodos calculados con tu actividad registrada.</p>
+<div class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-orange-100/80 border border-orange-300 text-[10px] text-orange-950 font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block"></span>
+Días: semana en curso + 3 anteriores | Semanas: actual + 3 previas | Meses: año en curso | Años: 2 últimos reales
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-1 bg-orange-50 p-1.5 rounded-xl border-2 border-orange-300 self-start sm:self-auto">
+<button class="compare-scale-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700" data-scale="days">Días con días</button>
+<button class="compare-scale-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500" data-scale="weeks">Semanas con semanas</button>
+<button class="compare-scale-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700" data-scale="months">Meses con meses</button>
+<button class="compare-scale-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700" data-scale="years">Años con años</button>
+</div>
+</div>
+<div class="bg-white/90 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-4 shadow-sm relative z-10">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+<div class="p-3.5 bg-orange-50/70 border-2 border-orange-300 rounded-xl">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-black text-orange-900 uppercase tracking-wider flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block"></span>Periodo A (Referencia)
+</span>
+<span class="text-[11px] font-mono font-bold text-orange-700 bg-white px-2 py-0.5 rounded border border-orange-200" id="badge-period-a">-</span>
+</div>
+<div id="container-inputs-a">
+<select class="w-full bg-white border-2 border-orange-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-orange-500" id="compare-period-a"></select>
+</div>
+</div>
+<div class="p-3.5 bg-emerald-50/70 border-2 border-emerald-300 rounded-xl">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-black text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>Periodo B (Objetivo / Comparado)
+</span>
+<span class="text-[11px] font-mono font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200" id="badge-period-b">-</span>
+</div>
+<div id="container-inputs-b">
+<select class="w-full bg-white border-2 border-emerald-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-emerald-500" id="compare-period-b"></select>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white/70 backdrop-blur-md border-2 border-orange-400 rounded-3xl p-5 md:p-6 shadow-md relative overflow-hidden">
+<img alt="Analítica y Gráficos" class="absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none rounded-3xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDfsXjAPrV4mB5IPh3wTgxrxTPY00f-SPDmaG3W7d47CDlLV2J5V8H5_bjtP1gv4zsFZN4h9zF7Tf3Kn25d9-u_O1BEeQnswFamqKCm0wCY_fgw6yzKoYwlhBpFZrlWv93BH5g_-yj1tMZ50hhAekFwerQVGHLM-rwesnJY-z8_qXZxcicnq_LtnchF8sBos_Q-UdW6Tvjy8IrjNYiByUamBX0UK2M_eN77OwZ0hhb"/>
+<div class="absolute inset-0 bg-white/50 pointer-events-none rounded-3xl"></div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10" id="compare-cards-container"></div>
+</div>
+<div class="bg-white/90 backdrop-blur-md border-2 border-orange-400 rounded-2xl p-5 shadow-sm relative z-10">
+<div class="flex items-center justify-between pb-3 mb-3 border-b-2 border-orange-200">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-base shadow-sm">
+<i class="ph-bold ph-sliders"></i>
+</div>
+<h3 class="text-sm font-black text-gray-950">Conclusiones Basadas en Datos Reales</h3>
+</div>
+<span class="text-xs font-mono font-bold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-300" id="compare-summary-badge">Datos sincronizados</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="compare-insights-container">
+<div class="p-3 bg-orange-50/80 rounded-xl border border-orange-300">
+<h4 class="text-xs font-black text-orange-950 mb-1 flex items-center gap-1.5"><i class="ph-fill ph-fire text-orange-600"></i> Actividades Registradas</h4>
+<p class="text-[11px] text-stone-700 leading-relaxed" id="insight-activities">Cálculo en vivo de tareas completadas y bloques cumplidos por el usuario.</p>
+</div>
+<div class="p-3 bg-emerald-50/80 rounded-xl border border-emerald-300">
+<h4 class="text-xs font-black text-emerald-950 mb-1 flex items-center gap-1.5"><i class="ph-bold ph-check-circle text-emerald-600"></i> Dedicación y Enfoque</h4>
+<p class="text-[11px] text-stone-700 leading-relaxed" id="insight-hours">Horas netas dedicadas en pomodoro e invertidas en bloques de tu rutina diaria.</p>
+</div>
+<div class="p-3 bg-amber-50/80 rounded-xl border border-amber-300">
+<h4 class="text-xs font-black text-amber-950 mb-1 flex items-center gap-1.5"><i class="ph-fill ph-moon text-amber-600"></i> Descanso y Sueño</h4>
+<p class="text-[11px] text-stone-700 leading-relaxed" id="insight-rest">Monitoreo exacto de tus noches de descanso guardadas y días de pausa sin actividades.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Mobile Navigation Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-2 border-orange-400 px-1 py-2 flex items-center justify-around shadow-2xl">
+<button class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-orange-600 font-bold" data-target="tab-pomodoro">
+<i class="ph-fill ph-timer text-xl"></i>
+<span class="text-[9px]">Pomodoro</span>
+</button>
+<button class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-stone-600 font-semibold" data-target="tab-schedule">
+<i class="ph-bold ph-calendar-blank text-xl"></i>
+<span class="text-[9px]">Horarios</span>
+</button>
+<button class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-stone-600 font-semibold" data-target="tab-tasks">
+<i class="ph-bold ph-check-square-offset text-xl"></i>
+<span class="text-[9px]">Tareas</span>
+</button>
+<button class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-stone-600 font-semibold" data-target="tab-sleep">
+<i class="ph-bold ph-moon-stars text-xl"></i>
+<span class="text-[9px]">Sueño</span>
+</button>
+<button class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-stone-600 font-semibold" data-target="tab-calendar">
+<i class="ph-bold ph-calendar-dots text-xl"></i>
+<span class="text-[9px]">Calendario</span>
+</button>
+<button class="mobile-nav-btn flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-stone-600 font-semibold" data-target="tab-comparar"><i class="ph-bold ph-sliders text-xl"></i><span class="text-[9px]">Comparar</span></button></nav>
+<script>
+  // Central Data Storage Helper with Immediate Persistence
+  const Storage = {
+    get(key, defaultVal) {
+      try {
+        const item = localStorage.getItem(`lifetracker_${key}`);
+        return item !== null ? JSON.parse(item) : defaultVal;
+      } catch (e) {
+        return defaultVal;
+      }
+    },
+    set(key, val) {
+      try {
+        localStorage.setItem(`lifetracker_${key}`, JSON.stringify(val));
+      } catch (e) {}
+    }
+  };
+
+  function formatDateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function getTodayKey() {
+    return formatDateKey(new Date());
+  }
+
+  // Sound System Web Audio API
+  class AudioNotifier {
+    constructor() { this.audioCtx = null; }
+    init() {
+      if (!this.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioCtx = new AudioContext();
+      }
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+    }
+    playAlarm() {
+      try {
+        this.init();
+        const now = this.audioCtx.currentTime;
+        [880, 698.46, 880, 1174.66].forEach((f, i) => {
+          const osc = this.audioCtx.createOscillator();
+          const gain = this.audioCtx.createGain();
+          osc.frequency.setValueAtTime(f, now + i * 0.15);
+          gain.gain.setValueAtTime(0.001, now + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.3, now + i * 0.15 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.15 + 0.45);
+          osc.connect(gain);
+          gain.connect(this.audioCtx.destination);
+          osc.start(now + i * 0.15);
+          osc.stop(now + i * 0.15 + 0.5);
+        });
+      } catch(e){}
+    }
+    playPing() {
+      try {
+        this.init();
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        const now = this.audioCtx.currentTime;
+        osc.frequency.setValueAtTime(659.25, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch(e){}
+    }
+  }
+  const soundSystem = new AudioNotifier();
+
+  function showToast(title, msg) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = 'p-3 rounded-2xl border-2 border-orange-500 bg-white text-orange-950 shadow-xl flex items-center gap-3 transition-all duration-300';
+    t.innerHTML = `<div><p class="text-xs font-black text-gray-950">${title}</p><p class="text-[11px] text-stone-700">${msg}</p></div>`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // Tabs switcher
+  function switchTab(id) {
+    document.querySelectorAll('.tab-pane').forEach(p => {
+      if (p.id === id) { p.classList.remove('hidden'); p.classList.add('flex'); }
+      else { p.classList.add('hidden'); p.classList.remove('flex'); }
+    });
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      const match = b.dataset.target === id;
+      b.className = match
+        ? 'tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-white bg-orange-500 shadow-sm border border-orange-500 whitespace-nowrap'
+        : 'tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold transition-all text-stone-700 hover:text-orange-700 hover:bg-orange-50 border border-transparent whitespace-nowrap';
+    });
+    document.querySelectorAll('.mobile-nav-btn').forEach(b => {
+      const match = b.dataset.target === id;
+      if (match) { b.classList.add('text-orange-600'); b.classList.remove('text-stone-600'); }
+      else { b.classList.remove('text-orange-600'); b.classList.add('text-stone-600'); }
+    });
+    if (id === 'tab-calendar' && window.CalendarApp) window.CalendarApp.render();
+    if (id === 'tab-comparar' && window.CompareApp) window.CompareApp.renderMetrics();
+  }
+
+  document.querySelectorAll('.tab-btn, .mobile-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.target));
+  });
+
+  setInterval(() => {
+    const el = document.getElementById('current-time-badge');
+    if (el) el.textContent = new Date().toTimeString().split(' ')[0];
+  }, 1000);
+
+  document.getElementById('sound-test-btn').addEventListener('click', () => {
+    soundSystem.playAlarm();
+    showToast('Sonido', 'Alarma auditiva probada');
+  });
+
+  // Pomodoro Module
+  const Pomodoro = {
+    mode: 'work',
+    isRunning: false,
+    timeLeft: 25 * 60,
+    totalTime: 25 * 60,
+    durations: { work: 25, short: 5, long: 15 },
+    sessions: 0,
+    focusMinutes: 0,
+    streak: 0,
+    interval: null,
+    circumference: 2 * Math.PI * 102,
+    init() {
+      this.durations = Storage.get('durations', { work: 25, short: 5, long: 15 });
+      document.getElementById('input-work-min').value = this.durations.work;
+      document.getElementById('input-short-min').value = this.durations.short;
+      document.getElementById('input-long-min').value = this.durations.long;
+
+      const today = getTodayKey();
+      const stats = Storage.get(`stats_${today}`, { sessions: 0, focusMinutes: 0 });
+      this.sessions = stats.sessions;
+      this.focusMinutes = stats.focusMinutes;
+      this.streak = Storage.get('streak', 0);
+
+      this.timeLeft = this.durations.work * 60;
+      this.totalTime = this.timeLeft;
+
+      this.bind();
+      this.updateDisplay();
+    },
+    bind() {
+      document.getElementById('btn-toggle').addEventListener('click', () => this.toggle());
+      document.getElementById('btn-reset').addEventListener('click', () => this.reset());
+      document.getElementById('btn-skip').addEventListener('click', () => this.onComplete());
+      document.getElementById('mode-work').addEventListener('click', () => this.setMode('work'));
+      document.getElementById('mode-short').addEventListener('click', () => this.setMode('short'));
+      document.getElementById('mode-long').addEventListener('click', () => this.setMode('long'));
+      document.getElementById('mode-prev-btn').addEventListener('click', () => {
+        const order = ['work', 'short', 'long'];
+        let idx = order.indexOf(this.mode) - 1;
+        if (idx < 0) idx = order.length - 1;
+        this.setMode(order[idx]);
+      });
+      document.getElementById('mode-next-btn').addEventListener('click', () => {
+        const order = ['work', 'short', 'long'];
+        let idx = (order.indexOf(this.mode) + 1) % order.length;
+        this.setMode(order[idx]);
+      });
+      document.getElementById('save-durations-btn').addEventListener('click', () => {
+        this.durations.work = parseInt(document.getElementById('input-work-min').value) || 25;
+        this.durations.short = parseInt(document.getElementById('input-short-min').value) || 5;
+        this.durations.long = parseInt(document.getElementById('input-long-min').value) || 15;
+        Storage.set('durations', this.durations);
+        this.setMode(this.mode);
+        showToast('Guardado', 'Tiempos actualizados');
+      });
+    },
+    saveTodayStats() {
+      const today = getTodayKey();
+      Storage.set(`stats_${today}`, { sessions: this.sessions, focusMinutes: this.focusMinutes });
+      Storage.set('streak', this.streak);
+
+      const act = Storage.get('calendar_activity', {});
+      if (!act[today]) {
+        act[today] = { pomos: this.sessions, focusMin: this.focusMinutes, tasksDone: 0, tasksTotal: 0, sleep: 'Sin registro', score: 0, blocks: 0 };
+      } else {
+        act[today].pomos = this.sessions;
+        act[today].focusMin = this.focusMinutes;
+      }
+      Storage.set('calendar_activity', act);
+      if (window.CalendarApp) window.CalendarApp.syncWithDay(today);
+      if (window.CompareApp) window.CompareApp.renderMetrics();
+    },
+    setMode(m) {
+      this.pause();
+      this.mode = m;
+      this.timeLeft = this.durations[m] * 60;
+      this.totalTime = this.timeLeft;
+      ['work', 'short', 'long'].forEach(k => {
+        const b = document.getElementById(`mode-${k}`);
+        if (k === m) b.className = 'flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500 whitespace-nowrap';
+        else b.className = 'flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition text-stone-700 hover:text-orange-700 hover:bg-orange-100 whitespace-nowrap';
+      });
+      document.getElementById('timer-tag').textContent = m === 'work' ? 'Foco Activo' : 'Descanso';
+      this.updateDisplay();
+    },
+    toggle() {
+      soundSystem.init();
+      if (this.isRunning) this.pause();
+      else this.start();
+    },
+    start() {
+      this.isRunning = true;
+      document.getElementById('btn-toggle-icon').className = 'ph-fill ph-pause text-xl';
+      document.getElementById('btn-toggle-text').textContent = 'Pausar';
+      document.getElementById('timer-status-hint').innerHTML = '<i class="ph-fill ph-circle text-[8px] text-orange-600 animate-pulse"></i> Sesión en curso...';
+      document.getElementById('timer-display').classList.add('timer-running');
+      this.interval = setInterval(() => {
+        if (this.timeLeft > 0) {
+          this.timeLeft--;
+          if (this.mode === 'work' && this.timeLeft % 60 === 0) {
+            this.focusMinutes++;
+            this.saveTodayStats();
+          }
+          this.updateDisplay();
+        } else {
+          this.onComplete();
+        }
+      }, 1000);
+    },
+    pause() {
+      this.isRunning = false;
+      clearInterval(this.interval);
+      document.getElementById('btn-toggle-icon').className = 'ph-fill ph-play text-xl';
+      document.getElementById('btn-toggle-text').textContent = 'Continuar';
+      document.getElementById('timer-status-hint').innerHTML = '<i class="ph-fill ph-circle text-[8px] text-stone-500"></i> Pausado';
+      document.getElementById('timer-display').classList.remove('timer-running');
+    },
+    reset() {
+      this.pause();
+      this.timeLeft = this.totalTime;
+      document.getElementById('btn-toggle-text').textContent = 'Iniciar Sesión';
+      document.getElementById('timer-status-hint').innerHTML = '<i class="ph-fill ph-circle text-[8px] text-emerald-600"></i> Listo para comenzar';
+      this.updateDisplay();
+      soundSystem.playPing();
+    },
+    onComplete() {
+      this.pause();
+      soundSystem.playAlarm();
+      if (this.mode === 'work') {
+        this.sessions++;
+        if (this.streak === 0) this.streak = 1;
+        this.saveTodayStats();
+        showToast('¡Buen trabajo!', 'Sesión de enfoque completada');
+        this.setMode('short');
+      } else {
+        showToast('¡Descanso terminado!', 'A por el siguiente ciclo');
+        this.setMode('work');
+      }
+    },
+    updateDisplay() {
+      const m = Math.floor(this.timeLeft / 60);
+      const s = this.timeLeft % 60;
+      document.getElementById('timer-display').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      const progress = (this.totalTime - this.timeLeft) / (this.totalTime || 1);
+      document.getElementById('timer-circle-progress').style.strokeDashoffset = this.circumference - (progress * this.circumference);
+      document.getElementById('stat-sessions').textContent = this.sessions;
+      document.getElementById('stat-focus-time').textContent = `${this.focusMinutes}m`;
+      document.getElementById('stat-streak').innerHTML = `<i class="ph-fill ph-fire text-amber-500"></i> ${this.streak}`;
+    }
+  };
+
+  // Schedule Module
+  const Schedule = {
+    blocks: [],
+    init() {
+      this.blocks = Storage.get('schedule_blocks', []);
+      this.bind();
+      this.render();
+    },
+    bind() {
+      const fCont = document.getElementById('schedule-form-container');
+      document.getElementById('open-new-block-btn').addEventListener('click', () => {
+        document.getElementById('schedule-form').reset();
+        fCont.classList.remove('hidden');
+        document.getElementById('schedule-title').focus();
+      });
+      document.getElementById('schedule-cancel-btn').addEventListener('click', () => fCont.classList.add('hidden'));
+      document.getElementById('schedule-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('schedule-title').value.trim();
+        const start = document.getElementById('schedule-start').value;
+        const end = document.getElementById('schedule-end').value;
+        if (!title || !start || !end) return;
+
+        const date = getTodayKey();
+        this.blocks.push({ id: Date.now().toString(), title, start, end, date });
+        this.blocks.sort((a,b) => a.start.localeCompare(b.start));
+        Storage.set('schedule_blocks', this.blocks);
+
+        // Update calendar activity count
+        const act = Storage.get('calendar_activity', {});
+        const todayBlocks = this.blocks.filter(b => (!b.date || b.date === date)).length;
+        if (!act[date]) {
+          act[date] = { pomos: 0, focusMin: 0, tasksDone: 0, tasksTotal: 0, sleep: 'Sin registro', score: 20, blocks: todayBlocks };
+        } else {
+          act[date].blocks = todayBlocks;
+        }
+        Storage.set('calendar_activity', act);
+
+        this.render();
+        fCont.classList.add('hidden');
+        showToast('Bloque Creado', `${start} - ${end}`);
+        soundSystem.playPing();
+        if (window.CompareApp) window.CompareApp.renderMetrics();
+      });
+    },
+    render() {
+      const el = document.getElementById('schedule-list');
+      const count = this.blocks.length;
+      document.getElementById('schedule-count').textContent = `${count} ${count === 1 ? 'actividad' : 'actividades'}`;
+
+      if (count === 0) {
+        el.innerHTML = `
+          <div class="py-12 px-4 text-center bg-white/90 backdrop-blur-sm border-2 border-dashed border-orange-300 rounded-2xl flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl border border-orange-300 mb-1">
+              <i class="ph-bold ph-calendar-blank"></i>
+            </div>
+            <p class="text-sm font-extrabold text-gray-950">No hay bloques horarios registrados</p>
+            <p class="text-xs text-stone-600 max-w-sm">Planifica tu jornada agregando bloques de estudio, reuniones o trabajo en equipo con el botón 'Nuevo Bloque'.</p>
+          </div>
+        `;
+        return;
+      }
+
+      el.innerHTML = this.blocks.map(b => `
+        <div class="flex items-center justify-between p-3.5 bg-white/95 backdrop-blur-sm border-2 border-orange-300 border-l-[6px] border-l-orange-500 rounded-xl shadow-sm transition hover:border-orange-400">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-xs font-black text-gray-950 bg-orange-100 px-2 py-1 rounded-lg border border-orange-400 whitespace-nowrap">${b.start} - ${b.end}</span>
+            <span class="text-sm font-bold text-gray-950">${b.title}</span>
+          </div>
+          <button onclick="Schedule.del('${b.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Eliminar bloque">
+            <i class="ph-bold ph-trash text-base"></i>
+          </button>
+        </div>
+      `).join('');
+    },
+    del(id) {
+      this.blocks = this.blocks.filter(b => b.id !== id);
+      Storage.set('schedule_blocks', this.blocks);
+      this.render();
+      showToast('Bloque Eliminado', 'Se ha eliminado del cronograma');
+      if (window.CompareApp) window.CompareApp.renderMetrics();
+    }
+  };
+
+  // Task Manager Module
+  const Tasks = {
+    items: [],
+    init() {
+      this.items = Storage.get('tasks_items', []);
+      this.bind();
+      this.render();
+    },
+    bind() {
+      const fCont = document.getElementById('task-form-container');
+      document.getElementById('open-new-task-btn').addEventListener('click', () => {
+        document.getElementById('task-form').reset();
+        fCont.classList.remove('hidden');
+        document.getElementById('task-title').focus();
+      });
+      document.getElementById('task-cancel-btn').addEventListener('click', () => fCont.classList.add('hidden'));
+      document.getElementById('task-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('task-title').value.trim();
+        const due = document.getElementById('task-due').value;
+        const priority = document.getElementById('task-priority').value;
+        if (!title) return;
+
+        const date = due ? due.split('T')[0] : getTodayKey();
+        this.items.unshift({ id: Date.now().toString(), title, completed: false, due, priority, date, completedAt: null });
+        Storage.set('tasks_items', this.items);
+        this.render();
+        fCont.classList.add('hidden');
+        showToast('Tarea Creada', title);
+        soundSystem.playPing();
+        if (window.CompareApp) window.CompareApp.renderMetrics();
+      });
+    },
+    toggle(id) {
+      const t = this.items.find(x => x.id === id);
+      if (t) {
+        t.completed = !t.completed;
+        t.completedAt = t.completed ? getTodayKey() : null;
+        Storage.set('tasks_items', this.items);
+
+        // Update today's calendar completed tasks
+        const today = getTodayKey();
+        const act = Storage.get('calendar_activity', {});
+        const doneToday = this.items.filter(x => x.completed && (x.completedAt === today || (!x.completedAt && x.date === today))).length;
+        if (!act[today]) {
+          act[today] = { pomos: 0, focusMin: 0, tasksDone: doneToday, tasksTotal: this.items.length, sleep: 'Sin registro', score: 30, blocks: 0 };
+        } else {
+          act[today].tasksDone = doneToday;
+          act[today].tasksTotal = this.items.length;
+        }
+        Storage.set('calendar_activity', act);
+
+        soundSystem.playPing();
+        this.render();
+        showToast(t.completed ? 'Tarea Completada' : 'Tarea Pendiente', t.title);
+        if (window.CompareApp) window.CompareApp.renderMetrics();
+      }
+    },
+    del(id) {
+      this.items = this.items.filter(x => x.id !== id);
+      Storage.set('tasks_items', this.items);
+      this.render();
+      showToast('Tarea Eliminada', 'Se ha quitado de la lista');
+      if (window.CompareApp) window.CompareApp.renderMetrics();
+    },
+    render() {
+      const el = document.getElementById('tasks-list');
+      if (this.items.length === 0) {
+        el.innerHTML = `
+          <div class="py-12 px-4 text-center bg-white/90 backdrop-blur-sm border-2 border-dashed border-orange-300 rounded-2xl flex flex-col items-center justify-center gap-2">
+            <div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl border border-orange-300 mb-1">
+              <i class="ph-bold ph-check-square-offset"></i>
+            </div>
+            <p class="text-sm font-extrabold text-gray-950">No hay tareas registradas aún</p>
+            <p class="text-xs text-stone-600 max-w-sm">Pulsa 'Nueva Tarea' para comenzar a organizar tus pendientes y proyectos del día.</p>
+          </div>
+        `;
+        return;
+      }
+
+      el.innerHTML = this.items.map(t => `
+        <div class="bg-white/95 backdrop-blur-sm border-2 border-orange-300 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm transition ${t.completed ? 'opacity-70 bg-stone-50' : 'hover:border-orange-400'}">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button onclick="Tasks.toggle('${t.id}')" class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition flex-shrink-0 ${t.completed ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-orange-400 bg-white text-transparent hover:border-orange-500'}">
+              <i class="ph-bold ph-check text-xs"></i>
+            </button>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-extrabold text-gray-950 truncate ${t.completed ? 'line-through text-stone-500' : ''}">${t.title}</p>
+              ${t.due ? `<span class="text-[11px] font-mono font-bold text-orange-700">${t.due.replace('T', ' ')}</span>` : ''}
+            </div>
+          </div>
+          <button onclick="Tasks.del('${t.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Eliminar tarea">
+            <i class="ph-bold ph-trash text-base"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+  };
+
+  // Sleep Calculator Module
+  const Sleep = {
+    records: [],
+    init() {
+      this.records = Storage.get('sleep_records', []);
+      this.renderLast();
+      document.getElementById('sleep-calc-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const bedtime = document.getElementById('sleep-bedtime').value;
+        const waketime = document.getElementById('sleep-waketime').value;
+        const note = document.getElementById('sleep-note').value.trim();
+
+        const b = bedtime.split(':').map(Number);
+        const w = waketime.split(':').map(Number);
+        let bMin = b[0] * 60 + b[1];
+        let wMin = w[0] * 60 + w[1];
+        if (wMin <= bMin) wMin += 24 * 60;
+        const diff = wMin - bMin;
+        const h = Math.floor(diff / 60);
+        const m = diff % 60;
+        const cycles = (diff / 90).toFixed(1);
+
+        const record = {
+          id: Date.now().toString(),
+          date: getTodayKey(),
+          bedtime,
+          waketime,
+          durationText: `${h}h ${m}m`,
+          hours: h,
+          minutes: m,
+          cycles,
+          note
+        };
+
+        this.records.unshift(record);
+        Storage.set('sleep_records', this.records);
+
+        const today = getTodayKey();
+        const act = Storage.get('calendar_activity', {});
+        if (!act[today]) {
+          act[today] = { pomos: 0, focusMin: 0, tasksDone: 0, tasksTotal: 0, sleep: `${h}h ${m}m`, score: 50, blocks: 0 };
+        } else {
+          act[today].sleep = `${h}h ${m}m`;
+        }
+        Storage.set('calendar_activity', act);
+
+        this.renderLast();
+        soundSystem.playPing();
+        showToast('Sueño Guardado', `${h} horas y ${m} minutos`);
+        if (window.CompareApp) window.CompareApp.renderMetrics();
+      });
+    },
+    renderLast() {
+      if (this.records.length === 0) {
+        document.getElementById('sleep-result-text').textContent = 'Sin registros de sueño aún';
+        document.getElementById('sleep-feedback').textContent = 'Introduce tus horas de descanso arriba para calcular los ciclos de sueño.';
+        document.getElementById('sleep-feedback').className = 'text-xs text-stone-500 font-bold mt-0.5';
+        document.getElementById('sleep-cycles-badge').textContent = '-- ciclos';
+        return;
+      }
+      const last = this.records[0];
+      document.getElementById('sleep-result-text').textContent = `Has dormido ${last.hours} horas y ${last.minutes} minutos`;
+      document.getElementById('sleep-cycles-badge').textContent = `~${last.cycles} ciclos`;
+      const feedback = document.getElementById('sleep-feedback');
+      if (last.hours >= 7 && last.hours <= 9) {
+        feedback.textContent = 'Óptimo para recuperación cognitiva y concentración.';
+        feedback.className = 'text-xs text-emerald-700 font-bold mt-0.5';
+      } else if (last.hours < 7) {
+        feedback.textContent = 'Descanso ligero. Procura programar una siesta reparadora.';
+        feedback.className = 'text-xs text-amber-700 font-bold mt-0.5';
+      } else {
+        feedback.textContent = 'Sueño prolongado. Excelente descanso profundo.';
+        feedback.className = 'text-xs text-blue-700 font-bold mt-0.5';
+      }
+    }
+  };
+
+  // Calendar App Suite (Day, Week, Month, Year)
+  const CalendarApp = {
+    currentView: 'month',
+    currentDate: new Date(),
+    selectedDay: new Date().getDate(),
+    monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+    activityData: {},
+    init() {
+      this.activityData = Storage.get('calendar_activity', {});
+      const curYear = new Date().getFullYear();
+      const ySelect = document.getElementById('cal-year-jump');
+      if (ySelect) {
+        ySelect.innerHTML = [curYear - 2, curYear - 1, curYear, curYear + 1, curYear + 2].map(y => `<option value="${y}" ${y === curYear ? 'selected' : ''}>${y}</option>`).join('');
+      }
+      this.bind();
+      this.render();
+    },
+    syncWithDay(key) {
+      this.activityData = Storage.get('calendar_activity', {});
+      this.render();
+    },
+    bind() {
+      document.querySelectorAll('.cal-view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.currentView = btn.dataset.view;
+          document.querySelectorAll('.cal-view-btn').forEach(b => {
+            if (b === btn) b.className = 'cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500';
+            else b.className = 'cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700';
+          });
+          this.render();
+        });
+      });
+
+      document.getElementById('cal-prev-btn').addEventListener('click', () => {
+        if (this.currentView === 'year') this.currentDate.setFullYear(this.currentDate.getFullYear() - 1);
+        else if (this.currentView === 'month') this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+        else if (this.currentView === 'week') this.currentDate.setDate(this.currentDate.getDate() - 7);
+        else this.currentDate.setDate(this.currentDate.getDate() - 1);
+        this.render();
+      });
+
+      document.getElementById('cal-next-btn').addEventListener('click', () => {
+        if (this.currentView === 'year') this.currentDate.setFullYear(this.currentDate.getFullYear() + 1);
+        else if (this.currentView === 'month') this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        else if (this.currentView === 'week') this.currentDate.setDate(this.currentDate.getDate() + 7);
+        else this.currentDate.setDate(this.currentDate.getDate() + 1);
+        this.render();
+      });
+
+      document.getElementById('cal-today-btn').addEventListener('click', () => {
+        this.currentDate = new Date();
+        this.selectedDay = new Date().getDate();
+        this.render();
+      });
+
+      document.getElementById('cal-month-jump').addEventListener('change', (e) => {
+        this.currentDate.setMonth(parseInt(e.target.value));
+        this.render();
+      });
+
+      document.getElementById('cal-year-jump').addEventListener('change', (e) => {
+        this.currentDate.setFullYear(parseInt(e.target.value));
+        this.render();
+      });
+    },
+    render() {
+      const year = this.currentDate.getFullYear();
+      const month = this.currentDate.getMonth();
+      const mName = this.monthNames[month];
+
+      const pTitle = document.getElementById('cal-period-title');
+      if (this.currentView === 'year') pTitle.textContent = `Año ${year}`;
+      else if (this.currentView === 'month') pTitle.textContent = `${mName} ${year}`;
+      else if (this.currentView === 'week') pTitle.textContent = `Semana • ${mName} ${year}`;
+      else pTitle.textContent = `${this.currentDate.getDate()} de ${mName} ${year}`;
+
+      document.getElementById('cal-month-jump').value = month;
+      if (document.getElementById('cal-year-jump')) document.getElementById('cal-year-jump').value = year;
+
+      const streak = Storage.get('streak', 0);
+      document.getElementById('cal-streak-badge').innerHTML = `<i class="ph-fill ph-fire text-amber-500"></i> Racha: ${streak} días`;
+
+      const views = {
+        month: document.getElementById('cal-view-month-container'),
+        week: document.getElementById('cal-view-week-container'),
+        day: document.getElementById('cal-view-day-container'),
+        year: document.getElementById('cal-view-year-container')
+      };
+      Object.keys(views).forEach(k => {
+        if (k === this.currentView) { views[k].classList.remove('hidden'); views[k].classList.add('flex'); }
+        else { views[k].classList.add('hidden'); views[k].classList.remove('flex'); }
+      });
+
+      if (this.currentView === 'month') this.renderMonth(year, month);
+      if (this.currentView === 'week') this.renderWeek();
+      if (this.currentView === 'day') this.renderDay();
+      if (this.currentView === 'year') this.renderYear(year);
+    },
+    renderMonth(year, month) {
+      const grid = document.getElementById('cal-month-grid');
+      grid.innerHTML = '';
+      const first = new Date(year, month, 1);
+      let startDay = first.getDay() - 1;
+      if (startDay === -1) startDay = 6;
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      const prevTotal = new Date(year, month, 0).getDate();
+
+      for (let i = startDay - 1; i >= 0; i--) {
+        grid.innerHTML += `<div class="h-20 md:h-24 p-2 bg-stone-50/70 border border-stone-200 rounded-xl opacity-40 select-none"><span class="text-xs font-mono font-bold text-stone-500">${prevTotal - i}</span></div>`;
+      }
+
+      const realToday = new Date();
+      for (let d = 1; d <= totalDays; d++) {
+        const isSel = (d === this.selectedDay);
+        const isToday = (d === realToday.getDate() && month === realToday.getMonth() && year === realToday.getFullYear());
+        const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const act = this.activityData[key];
+
+        grid.innerHTML += `
+          <div onclick="CalendarApp.selectDay(${d})" class="h-20 md:h-24 p-2 rounded-xl transition cursor-pointer flex flex-col justify-between ${isSel ? 'border-2 border-orange-500 bg-orange-50/95 shadow-md ring-2 ring-orange-300' : 'border-2 border-orange-200 bg-white/90 hover:bg-white hover:border-orange-400 shadow-sm'}">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black font-mono ${isSel ? 'text-orange-700 bg-orange-200 px-1 rounded' : 'text-gray-950'}">${d}</span>
+              ${isToday ? '<span class="text-[8px] font-extrabold px-1 rounded bg-orange-500 text-white uppercase">Hoy</span>' : ''}
+            </div>
+            ${act && act.pomos > 0 ? `<div class="text-[9px] font-bold text-orange-800 bg-orange-100/90 px-1 py-0.5 rounded border border-orange-300 truncate"><i class="ph-fill ph-fire text-orange-600"></i> ${act.pomos} foco</div>` : '<div class="text-[9px] text-stone-400">Sin datos</div>'}
+            <div class="flex justify-end gap-1">${act && act.pomos > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>' : ''}</div>
+          </div>
+        `;
+      }
+      this.renderDetail();
+    },
+    selectDay(d) {
+      this.selectedDay = d;
+      soundSystem.playPing();
+      this.render();
+    },
+    renderDetail() {
+      const year = this.currentDate.getFullYear();
+      const month = this.currentDate.getMonth();
+      const key = `${year}-${String(month+1).padStart(2,'0')}-${String(this.selectedDay).padStart(2,'0')}`;
+      const act = this.activityData[key] || { pomos: 0, focusMin: 0, tasksDone: 0, tasksTotal: 0, sleep: 'Sin registro', score: 0, blocks: 0 };
+      const dObj = new Date(year, month, this.selectedDay);
+
+      document.getElementById('detail-date-badge').textContent = this.selectedDay;
+      document.getElementById('detail-date-title').textContent = `${this.dayNames[dObj.getDay()]}, ${this.selectedDay} de ${this.monthNames[month]} de ${year}`;
+      document.getElementById('detail-productivity-score').textContent = `Productividad: ${act.score}%`;
+      document.getElementById('detail-focus-time').innerHTML = `<i class="ph-fill ph-timer text-base text-orange-600"></i> ${Math.floor(act.focusMin/60)}h ${act.focusMin%60}m (${act.pomos} pomodoros)`;
+      document.getElementById('detail-tasks-done').innerHTML = `<i class="ph-bold ph-check-circle text-base text-emerald-600"></i> ${act.tasksDone} hechas`;
+      document.getElementById('detail-sleep-time').innerHTML = `<i class="ph-fill ph-moon text-base text-amber-600"></i> ${act.sleep}`;
+      document.getElementById('detail-blocks-count').innerHTML = `<i class="ph-bold ph-clock text-base text-orange-500"></i> ${act.blocks} sesiones`;
+    },
+    renderWeek() {
+      const el = document.getElementById('cal-week-cards');
+      const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      const current = new Date(this.currentDate);
+      const dayOfWeek = (current.getDay() + 6) % 7;
+      const monday = new Date(current);
+      monday.setDate(current.getDate() - dayOfWeek);
+
+      const realToday = new Date();
+      let totalPomos = 0;
+
+      el.innerHTML = days.map((name, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dayNum = d.getDate();
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+        const act = this.activityData[key] || { pomos: 0, focusMin: 0 };
+        totalPomos += act.pomos;
+        const isToday = (dayNum === realToday.getDate() && d.getMonth() === realToday.getMonth() && d.getFullYear() === realToday.getFullYear());
+
+        return `
+          <div class="bg-white/95 backdrop-blur-sm border-2 ${isToday ? 'border-orange-500 ring-2 ring-orange-300' : 'border-orange-300'} rounded-2xl p-3 flex flex-col justify-between shadow-sm">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-black text-gray-950">${name}</span>
+              <span class="text-xs font-mono font-bold ${isToday ? 'bg-orange-500 text-white px-1.5 rounded' : 'text-stone-600'}">${dayNum}</span>
+            </div>
+            <div class="my-1">
+              <span class="text-sm font-black text-orange-600">${act.pomos} sesiones</span>
+              <p class="text-[11px] text-stone-600 font-medium">${act.focusMin}m foco</p>
+            </div>
+            <div class="w-full bg-orange-100 rounded-full h-1.5 mt-2 overflow-hidden border border-orange-200">
+              <div class="bg-orange-500 h-1.5 rounded-full" style="width: ${Math.min(100, act.pomos * 20)}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const avg = Math.min(100, Math.round((totalPomos / 7) * 20));
+      document.getElementById('week-avg-eff').textContent = `Efectividad promedio: ${avg}%`;
+    },
+    renderDay() {
+      const el = document.getElementById('cal-day-timeline');
+      const blocks = Storage.get('schedule_blocks', []);
+      if (blocks.length === 0) {
+        el.innerHTML = `
+          <div class="py-8 text-center text-stone-500 text-xs font-medium">
+            No hay bloques programados para este día. Añade tus bloques en la pestaña 'Bloques Horarios'.
+          </div>
+        `;
+        return;
+      }
+      el.innerHTML = blocks.map(b => `
+        <div class="py-2.5 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-xs font-black text-orange-700 bg-orange-100 px-2 py-1 rounded border border-orange-300">${b.start} - ${b.end}</span>
+            <span class="text-xs font-bold text-gray-950">${b.title}</span>
+          </div>
+          <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200 uppercase">Actividad</span>
+        </div>
+      `).join('');
+    },
+    renderYear(year) {
+      const el = document.getElementById('cal-year-grid');
+      el.innerHTML = this.monthNames.map((m, idx) => {
+        let monthPomos = 0;
+        Object.keys(this.activityData).forEach(k => {
+          if (k.startsWith(`${year}-${String(idx+1).padStart(2,'0')}`)) {
+            monthPomos += this.activityData[k].pomos || 0;
+          }
+        });
+        const score = Math.min(100, monthPomos * 5);
+        return `
+          <div onclick="CalendarApp.jumpMonth(${idx})" class="p-3 bg-white/95 backdrop-blur-sm border-2 border-orange-300 hover:border-orange-500 rounded-2xl cursor-pointer transition shadow-sm">
+            <div class="flex justify-between mb-1.5"><span class="text-xs font-black text-gray-950">${m}</span><span class="text-[10px] font-mono text-stone-600">${year}</span></div>
+            <div class="h-8 rounded-lg bg-orange-400 text-white flex items-center justify-center font-bold text-xs">${score}% consistencia</div>
+          </div>
+        `;
+      }).join('');
+    },
+    jumpMonth(idx) {
+      this.currentDate.setMonth(idx);
+      this.currentView = 'month';
+      document.querySelectorAll('.cal-view-btn').forEach(b => {
+        if (b.dataset.view === 'month') b.className = 'cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500';
+        else b.className = 'cal-view-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700';
+      });
+      this.render();
+    }
+  };
+
+  // Comparar Suite: 100% Dynamic, Real Dates and Strictly Calculated Metrics
+  const CompareApp = {
+    scale: 'weeks',
+    scaleOptions: {},
+    dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+    monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    init() {
+      this.bind();
+      this.updateScale(this.scale);
+    },
+    bind() {
+      document.querySelectorAll('.compare-scale-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const s = e.currentTarget.dataset.scale;
+          this.updateScale(s);
+        });
+      });
+      const selA = document.getElementById('compare-period-a');
+      const selB = document.getElementById('compare-period-b');
+      if (selA) selA.addEventListener('change', () => this.renderMetrics());
+      if (selB) selB.addEventListener('change', () => this.renderMetrics());
+    },
+    // Generate dates based strictly on today's real Date object
+    generateOptions() {
+      const now = new Date();
+      // Current year & month
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      // Current week Monday calculation
+      const dayOfWeek = (now.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+      const currentMonday = new Date(now);
+      currentMonday.setDate(now.getDate() - dayOfWeek);
+      currentMonday.setHours(0,0,0,0);
+
+      // 1. Días: semana actual (lun a dom = 7 días) + 3 días inmediatamente anteriores al lunes
+      // Total 10 días ordenados cronológicamente
+      const days = [];
+      for (let offset = -3; offset <= 6; offset++) {
+        const d = new Date(currentMonday);
+        d.setDate(currentMonday.getDate() + offset);
+        const key = formatDateKey(d);
+        const isCurrentWeek = offset >= 0;
+        const isToday = formatDateKey(now) === key;
+        const dayLabel = `${this.dayNamesShort[d.getDay()]} ${d.getDate()} de ${this.monthNames[d.getMonth()]}${isToday ? ' (Hoy)' : (isCurrentWeek ? '' : ' (Semana ant.)')}`;
+        days.push({
+          val: key,
+          text: dayLabel,
+          startDate: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0),
+          endDate: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59)
+        });
+      }
+
+      // 2. Semanas: Semana actual y hasta 3 semanas anteriores (4 semanas en total)
+      const weeks = [];
+      const weekLabels = [
+        'Semana actual (En curso)',
+        'Semana anterior (Hace 1 sem.)',
+        'Hace 2 semanas',
+        'Hace 3 semanas'
+      ];
+      for (let w = 0; w < 4; w++) {
+        const mon = new Date(currentMonday);
+        mon.setDate(currentMonday.getDate() - (w * 7));
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        const rangeText = `${mon.getDate()} ${this.monthNames[mon.getMonth()].substring(0,3)} - ${sun.getDate()} ${this.monthNames[sun.getMonth()].substring(0,3)}`;
+        weeks.push({
+          val: `W-${w}`,
+          text: `${weekLabels[w]} (${rangeText})`,
+          startDate: new Date(mon.getFullYear(), mon.getMonth(), mon.getDate(), 0,0,0),
+          endDate: new Date(sun.getFullYear(), sun.getMonth(), sun.getDate(), 23,59,59)
+        });
+      }
+
+      // 3. Meses: 12 meses del año actual
+      const months = [];
+      for (let m = 0; m < 12; m++) {
+        const startM = new Date(currentYear, m, 1, 0, 0, 0);
+        const endM = new Date(currentYear, m + 1, 0, 23, 59, 59);
+        const isCurM = (m === currentMonth);
+        months.push({
+          val: `M-${currentYear}-${m}`,
+          text: `${this.monthNames[m]} ${currentYear}${isCurM ? ' (Mes actual)' : ''}`,
+          startDate: startM,
+          endDate: endM
+        });
+      }
+
+      // 4. Años: Estrictamente los últimos 2 años reales (año actual y año anterior)
+      const years = [
+        {
+          val: `Y-${currentYear}`,
+          text: `Año ${currentYear} (Actual)`,
+          startDate: new Date(currentYear, 0, 1, 0, 0, 0),
+          endDate: new Date(currentYear, 11, 31, 23, 59, 59)
+        },
+        {
+          val: `Y-${currentYear - 1}`,
+          text: `Año ${currentYear - 1} (Anterior)`,
+          startDate: new Date(currentYear - 1, 0, 1, 0, 0, 0),
+          endDate: new Date(currentYear - 1, 11, 31, 23, 59, 59)
+        }
+      ];
+
+      this.scaleOptions = { days, weeks, months, years };
+    },
+    updateScale(s) {
+      this.scale = s;
+      this.generateOptions();
+
+      document.querySelectorAll('.compare-scale-btn').forEach(b => {
+        if (b.dataset.scale === s) {
+          b.className = 'compare-scale-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-white bg-orange-500 shadow-sm border border-orange-500';
+        } else {
+          b.className = 'compare-scale-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-stone-700 hover:text-orange-700';
+        }
+      });
+
+      const options = this.scaleOptions[s] || [];
+      const selA = document.getElementById('compare-period-a');
+      const selB = document.getElementById('compare-period-b');
+      if (selA && selB && options.length > 0) {
+        // Selection defaults
+        let defAIdx = 0;
+        let defBIdx = Math.min(1, options.length - 1);
+        if (s === 'weeks') {
+          defAIdx = 0; // Semana actual
+          defBIdx = 1; // Semana anterior
+        } else if (s === 'days') {
+          // Default to today and yesterday if in range
+          const todayKey = getTodayKey();
+          const todayIdx = options.findIndex(o => o.val === todayKey);
+          if (todayIdx !== -1) {
+            defAIdx = todayIdx;
+            defBIdx = Math.max(0, todayIdx - 1);
+          }
+        } else if (s === 'months') {
+          const curM = new Date().getMonth();
+          defAIdx = curM;
+          defBIdx = Math.max(0, curM - 1);
+        } else if (s === 'years') {
+          defAIdx = 0;
+          defBIdx = 1;
+        }
+
+        selA.innerHTML = options.map((o, idx) => `<option value="${o.val}" ${idx === defAIdx ? 'selected' : ''}>${o.text}</option>`).join('');
+        selB.innerHTML = options.map((o, idx) => `<option value="${o.val}" ${idx === defBIdx ? 'selected' : ''}>${o.text}</option>`).join('');
+      }
+      this.renderMetrics();
+    },
+    // Compute strict metrics for any [startDate, endDate] range from user storage
+    calculateMetricsForRange(startDate, endDate) {
+      const startKey = formatDateKey(startDate);
+      const endKey = formatDateKey(endDate);
+
+      // Collect dates within the range
+      const dateKeys = [];
+      const cur = new Date(startDate);
+      while (cur <= endDate) {
+        dateKeys.push(formatDateKey(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      const tasks = Storage.get('tasks_items', []);
+      const scheduleBlocks = Storage.get('schedule_blocks', []);
+      const sleepRecords = Storage.get('sleep_records', []);
+      const activityData = Storage.get('calendar_activity', {});
+
+      // a) Número de actividades realizadas:
+      // Conteo de tareas completadas en ese periodo + bloques de horario asignados en esas fechas
+      let tasksDoneCount = 0;
+      tasks.forEach(t => {
+        if (t.completed) {
+          const dKey = t.completedAt || (t.due ? t.due.split('T')[0] : t.date);
+          if (dKey && dKey >= startKey && dKey <= endKey) {
+            tasksDoneCount++;
+          }
+        }
+      });
+
+      let scheduleBlocksCount = 0;
+      scheduleBlocks.forEach(b => {
+        const bDate = b.date || getTodayKey();
+        if (bDate >= startKey && bDate <= endKey) {
+          scheduleBlocksCount++;
+        }
+      });
+      const totalActivities = tasksDoneCount + scheduleBlocksCount;
+
+      // b) Horas invertidas en actividades:
+      // Pomodoros completados en minutos + horas de bloques de horario realizadas
+      let focusMinutes = 0;
+      dateKeys.forEach(k => {
+        const dayStat = Storage.get(`stats_${k}`, null);
+        if (dayStat && dayStat.focusMinutes) focusMinutes += dayStat.focusMinutes;
+        else if (activityData[k] && activityData[k].focusMin) focusMinutes += activityData[k].focusMin;
+      });
+
+      // Calculate schedule blocks duration in minutes
+      let blocksMinutes = 0;
+      scheduleBlocks.forEach(b => {
+        const bDate = b.date || getTodayKey();
+        if (bDate >= startKey && bDate <= endKey && b.start && b.end) {
+          const [sh, sm] = b.start.split(':').map(Number);
+          const [eh, em] = b.end.split(':').map(Number);
+          let diff = (eh * 60 + em) - (sh * 60 + sm);
+          if (diff < 0) diff += 24 * 60;
+          blocksMinutes += diff;
+        }
+      });
+
+      const actTotalMinutes = focusMinutes + blocksMinutes;
+      const actHours = Math.floor(actTotalMinutes / 60);
+      const actMins = actTotalMinutes % 60;
+
+      // c) Horas totales:
+      // Suma real de horas invertidas en actividades + bloques de rutina
+      const totalCombinedMinutes = actTotalMinutes;
+      const totalHoursH = Math.floor(totalCombinedMinutes / 60);
+      const totalHoursM = totalCombinedMinutes % 60;
+
+      // d) Días de descanso (Días que no se ha hecho nada):
+      // Días dentro del periodo donde el usuario tuvo 0 tareas hechas, 0 pomodoros y 0 bloques
+      let restDays = 0;
+      dateKeys.forEach(k => {
+        const dayStat = Storage.get(`stats_${k}`, null);
+        const dayAct = activityData[k];
+        const pomos = (dayStat ? dayStat.sessions : (dayAct ? dayAct.pomos : 0)) || 0;
+        const dayTasksDone = tasks.filter(t => t.completed && (t.completedAt === k || (!t.completedAt && t.date === k))).length;
+        const dayBlocks = scheduleBlocks.filter(b => (b.date || getTodayKey()) === k).length;
+        if (pomos === 0 && dayTasksDone === 0 && dayBlocks === 0) {
+          restDays++;
+        }
+      });
+
+      // e) Horas de sueño totales:
+      // Suma de horas reales de sueño registradas en el módulo de Sueño
+      let sleepMinutes = 0;
+      sleepRecords.forEach(s => {
+        if (s.date && s.date >= startKey && s.date <= endKey) {
+          sleepMinutes += ((s.hours || 0) * 60) + (s.minutes || 0);
+        }
+      });
+      const sleepH = Math.floor(sleepMinutes / 60);
+      const sleepM = sleepMinutes % 60;
+
+      const hasAnyData = (totalActivities > 0 || actTotalMinutes > 0 || sleepMinutes > 0);
+
+      return {
+        hasData: hasAnyData,
+        activitiesCount: totalActivities,
+        actMinutes: actTotalMinutes,
+        actHoursText: actTotalMinutes > 0 ? `${actHours}h ${actMins}m` : '0h 0m',
+        totalHoursText: totalCombinedMinutes > 0 ? `${totalHoursH}h ${totalHoursM}m` : '0h 0m',
+        restDaysCount: restDays,
+        totalPeriodDays: dateKeys.length,
+        sleepMinutes: sleepMinutes,
+        sleepHoursText: sleepMinutes > 0 ? `${sleepH}h ${sleepM}m` : '0h'
+      };
+    },
+    renderMetrics() {
+      const options = this.scaleOptions[this.scale] || [];
+      const selA = document.getElementById('compare-period-a');
+      const selB = document.getElementById('compare-period-b');
+      if (!selA || !selB || options.length === 0) return;
+
+      const itemA = options.find(o => o.val === selA.value) || options[0];
+      const itemB = options.find(o => o.val === selB.value) || (options[1] || options[0]);
+
+      const badgeA = document.getElementById('badge-period-a');
+      const badgeB = document.getElementById('badge-period-b');
+      if (badgeA) badgeA.textContent = itemA.text;
+      if (badgeB) badgeB.textContent = itemB.text;
+
+      const mA = this.calculateMetricsForRange(itemA.startDate, itemA.endDate);
+      const mB = this.calculateMetricsForRange(itemB.startDate, itemB.endDate);
+
+      // Percentage or delta helper
+      function getDelta(valA, valB, isUnitCount = false) {
+        if (valA === 0 && valB === 0) return '0%';
+        if (valA === 0) return `+${valB}${isUnitCount ? '' : '%'}`;
+        const diff = valB - valA;
+        const pct = Math.round((diff / valA) * 100);
+        return pct >= 0 ? `+${pct}%` : `${pct}%`;
+      }
+
+      const deltaAct = getDelta(mA.activitiesCount, mB.activitiesCount);
+      const deltaActHours = getDelta(mA.actMinutes, mB.actMinutes);
+      const deltaTotalHours = getDelta(mA.actMinutes, mB.actMinutes);
+      const deltaRest = `${mB.restDaysCount - mA.restDaysCount >= 0 ? '+' : ''}${mB.restDaysCount - mA.restDaysCount} d`;
+      const deltaSleep = getDelta(mA.sleepMinutes, mB.sleepMinutes);
+
+      const container = document.getElementById('compare-cards-container');
+      if (!container) return;
+
+      // Cards definitions with real user stats
+      const cards = [
+        {
+          title: 'Número de actividades realizadas',
+          sub: '(Tareas completadas y bloques de trabajo)',
+          delta: deltaAct,
+          valA: mA.activitiesCount > 0 ? `${mA.activitiesCount} actividades` : '0 actividades',
+          valB: mB.activitiesCount > 0 ? `${mB.activitiesCount} actividades` : '0 actividades',
+          hasA: mA.activitiesCount > 0,
+          hasB: mB.activitiesCount > 0,
+          color: 'orange',
+          desc: 'Tareas de tu lista marcadas como hechas y bloques horarios finalizados.'
+        },
+        {
+          title: 'Horas invertidas en actividades',
+          sub: '(Pomodoros y bloques registrados)',
+          delta: deltaActHours,
+          valA: mA.actHoursText,
+          valB: mB.actHoursText,
+          hasA: mA.actMinutes > 0,
+          hasB: mB.actMinutes > 0,
+          color: 'orange',
+          desc: 'Tiempo neto acumulado de foco y trabajo productivo en este periodo.'
+        },
+        {
+          title: 'Horas totales',
+          sub: '(Horas dedicadas a tu rutina)',
+          delta: deltaTotalHours,
+          valA: mA.totalHoursText,
+          valB: mB.totalHoursText,
+          hasA: mA.actMinutes > 0,
+          hasB: mB.actMinutes > 0,
+          color: 'emerald',
+          desc: 'Suma de horas dedicadas entre bloques de horario y sesiones de foco.'
+        },
+        {
+          title: 'Días de descanso',
+          sub: '(Días que no se ha hecho nada)',
+          delta: deltaRest,
+          valA: `${mA.restDaysCount} de ${mA.totalPeriodDays} días`,
+          valB: `${mB.restDaysCount} de ${mB.totalPeriodDays} días`,
+          hasA: true,
+          hasB: true,
+          color: 'amber',
+          desc: 'Días sin tareas, pomodoros ni bloques de horario registrados.'
+        },
+        {
+          title: 'Horas de sueño totales',
+          sub: '(Horas registradas en Control de Sueño)',
+          delta: deltaSleep,
+          valA: mA.sleepHoursText,
+          valB: mB.sleepHoursText,
+          hasA: mA.sleepMinutes > 0,
+          hasB: mB.sleepMinutes > 0,
+          color: 'emerald',
+          desc: 'Suma de descanso nocturno guardado en el módulo de sueño.'
+        }
+      ];
+
+      container.innerHTML = cards.map(c => {
+        const noDataNote = (!c.hasA && !c.hasB)
+          ? `<p class="text-[10px] text-stone-500 font-medium italic mt-1 bg-orange-50/60 p-1.5 rounded-lg border border-orange-200">Sin registros en este periodo. Completa tareas, pomodoros o sueño para ver datos reales.</p>`
+          : '';
+
+        return `
+          <div class="bg-white/95 backdrop-blur-md border-2 border-orange-300 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-1">
+                <div>
+                  <span class="text-xs font-extrabold text-stone-800 uppercase tracking-wider block">${c.title}</span>
+                  ${c.sub ? `<span class="text-[10px] text-stone-500 font-bold block">${c.sub}</span>` : ''}
+                </div>
+                <span class="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex-shrink-0">${c.delta}</span>
+              </div>
+              <div class="flex items-baseline justify-between my-3">
+                <div>
+                  <span class="text-[11px] font-bold text-stone-500 block">Periodo A</span>
+                  <span class="text-sm font-black text-stone-700">${c.valA}</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-[11px] font-bold text-orange-600 block">Periodo B</span>
+                  <span class="text-lg font-black text-orange-600">${c.valB}</span>
+                </div>
+              </div>
+              ${noDataNote}
+            </div>
+            <div class="mt-2">
+              <span class="text-[10px] text-stone-500 font-medium block">${c.desc}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Update conclusions box
+      const badge = document.getElementById('compare-summary-badge');
+      if (badge) {
+        if (!mA.hasData && !mB.hasData) {
+          badge.textContent = 'Sin actividad registrada aún';
+          badge.className = 'text-xs font-mono font-bold text-stone-600 bg-stone-100 px-2.5 py-1 rounded-xl border border-stone-300';
+        } else {
+          badge.textContent = 'Calculado con datos reales';
+          badge.className = 'text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-300';
+        }
+      }
+
+      const inAct = document.getElementById('insight-activities');
+      const inHours = document.getElementById('insight-hours');
+      const inRest = document.getElementById('insight-rest');
+
+      if (inAct) {
+        inAct.textContent = mB.activitiesCount > mA.activitiesCount
+          ? `Periodo B tiene ${mB.activitiesCount - mA.activitiesCount} actividades más realizadas que Periodo A.`
+          : (mA.activitiesCount === mB.activitiesCount
+            ? `Ambos periodos registran la misma cantidad (${mA.activitiesCount}) de actividades terminadas.`
+            : `Periodo A tuvo mayor número de tareas y bloques completados (${mA.activitiesCount} vs ${mB.activitiesCount}).`);
+      }
+
+      if (inHours) {
+        inHours.textContent = mB.actMinutes > mA.actMinutes
+          ? `Mayor tiempo enfocado en Periodo B (${mB.actHoursText}) frente a Periodo A (${mA.actHoursText}).`
+          : `Horas de trabajo neto: ${mA.actHoursText} (Periodo A) y ${mB.actHoursText} (Periodo B).`;
+      }
+
+      if (inRest) {
+        inRest.textContent = `Descanso: ${mB.restDaysCount} días de pausa y ${mB.sleepHoursText} de sueño en Periodo B (Periodo A: ${mA.restDaysCount} días de pausa y ${mA.sleepHoursText} de sueño).`;
+      }
+    }
+  };
+
+  // Run modules on startup
+  window.addEventListener('DOMContentLoaded', () => {
+    Pomodoro.init();
+    Schedule.init();
+    Tasks.init();
+    Sleep.init();
+    CalendarApp.init();
+    CompareApp.init();
+  });
+</script>
+</body></html>

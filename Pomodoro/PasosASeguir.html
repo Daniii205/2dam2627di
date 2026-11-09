@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro & Life Tracker - Histórico de Prompts y Despliegues</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- RESET Y VARIABLES GLOBALES --- */
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-bg-hover: #243347;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --border-color: #334155;
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- BACKGROUND DECORATION --- */
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, rgba(15, 23, 42, 0) 70%);
+            top: -200px;
+            right: -200px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 80px 20px 40px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            max-width: 700px;
+            margin: 0 auto 30px auto;
+        }
+
+        /* --- FILTRO Y BUSCADOR --- */
+        .controls {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto 40px auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 16px 12px 42px;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            fill: var(--text-muted);
+            width: 18px;
+            height: 18px;
+        }
+
+        .stats-count {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* --- CUERPO PRINCIPAL (GRID) --- */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 80px 20px;
+            flex: 1;
+            width: 100%;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        /* --- TARJETAS --- */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow);
+            background: var(--card-bg-hover);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .prompt-number {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .platform-tag {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: #0f172a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-body {
+            flex: 1;
+            margin-bottom: 20px;
+        }
+
+        .prompt-text {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-line;
+            display: -webkit-box;
+            -webkit-line-clamp: 6;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .prompt-text.expanded {
+            -webkit-line-clamp: unset;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            padding: 0;
+            display: inline-block;
+        }
+
+        .toggle-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* --- BOTONES DE ACCIÓN --- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            transform: scale(1.02);
+        }
+
+        .btn-disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            position: relative;
+            z-index: 1;
+            background: #090d16;
+            border-top: 1px solid var(--border-color);
+            padding: 40px 20px;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 600px) {
+            .hero {
+                padding: 50px 15px 30px 15px;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <!-- HERO SECTION -->
+    <header class="hero">
+        <span class="badge">Evolución de Proyecto UI/UX</span>
+        <h1>Pomodoro & Life Tracker</h1>
+        <p>Historial interactivo de iteraciones, prompts de optimización e hipervínculos de despliegue en Google Stitch y GitHub Pages.</p>
+    </header>
+
+    <!-- BARRA DE BÚSQUEDA -->
+    <section class="controls">
+        <div class="search-box">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" id="searchInput" placeholder="Buscar por prompt, característica o tecnología...">
+        </div>
+        <div class="stats-count" id="statsCount">Mostrando 16 iteraciones</div>
+    </section>
+
+    <!-- GRID DE TARJETAS -->
+    <main class="main-container">
+        <div class="grid" id="promptsGrid">
+
+            <!-- Prompt 1 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 1</span>
+                        <span class="platform-tag">Requisito Base</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Explicación de Pomodoro:
+Métodos para marcar pautas de trabajo, por ejemplo el horario.
+Quiero que para el horario puedas elegir los rangos horarios para cada actividad que ponga el usuario.
+Tiempos de activo y TIEMPOS de Descanso.
+Que el usuario pueda elegir la hora u horas a las que quiera descansar y poner un cronómetro, para cuando termine suene una alarma.
+Gestor de Tareas: Agenda con futuras tareas modificables.
+Tiempo de Sueño: Calcule tiempo dormido según hora de acostarse y despertarse.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <span class="btn btn-disabled">Sin enlace directo</span>
+            </article>
+
+            <!-- Prompt 2 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 2</span>
+                        <span class="platform-tag">GitHub Pages</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Actúa como un Desarrollador Web Full-Stack experto en UI/UX y aplicaciones de productividad.
+Quiero que crees una aplicación web interactiva completa (HTML5, CSS3 con Tailwind CSS/estilos modernos, y JavaScript modular) llamada "Pomodoro & Life Tracker". Modo oscuro por defecto, responsive y con localStorage.
+
+Incluye 4 secciones principales:
+1. Temporizador Pomodoro & Horarios Personalizables con alarma sonora (Web Audio API).
+2. Gestor de Tareas (To-Do List / Agenda) con CRUD completo.
+3. Calculadora y Control de Tiempo de Sueño.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://daniii205.github.io/2dam2627di/Pomodoro/PomdoroV1.html" target="_blank" class="btn btn-primary">
+                    Ver Resultado V1
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 3 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 3</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">En el apartado "Pomodoro y Rutinas" mete de fondo una imagen de un reloj de arena.</div>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=f42ad048a9cd487e937266a5dbe350f8" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 4 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 4</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Ahora en el apartado de "Bloques Horarios" añade de fondo una imagen de un calendario.</div>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=7c132637480a4321b002cd5ca10f67af" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 5 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 5</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Ahora en el apartado "Gestor de tareas" añade una imagen de fondo de una agenda.</div>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=03bed60d74584cb5a7d115252f45e989" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 6 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 6</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">En el apartado "Control de Sueño" añade de fondo una imagen de una cama. Aparte de eso cambia todos los colores de la página a colores más cálidos: blanco para los fondos, naranja para los bordes de cada recuadro y letras en color negro.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=548e54e4f7d446189db7aab590e976a2" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 7 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 7</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">De fondo de la página añade una imagen que tenga que ver con un estilo de vida saludable. Integra imágenes temáticas específicas (reloj de arena, calendario, agenda y cama) en sus respectivos cuadros.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=94fb44ad90e249aaac8278e84130e633" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 8 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 8</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Añade un apartado de "Calendario" para poder revisar el historial de días, semanas, meses y años más fácilmente.</div>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=7acd69511a66413e842066a3a6ca1839" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 9 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 9</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Fondo general de vida saludable. Configura las imágenes de las secciones para que sean medio opacas (reloj de arena, calendario, agenda, cama y calendario en la nueva sección).</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=ce0ba694fdf74ad79f901d98580e4202" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 10 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 10</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Elimina todo registro inicial de la página para que cuando la inicie cada usuario el guardado esté limpio y pueda añadir o quitar actividades y bloques dinámicamente.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=387b1fb8e64c43e5ac2a5e12cfa84d59" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 11 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 11</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Genera y añade las imágenes de fondo semi-opacas para cada apartado técnico (Vida saludable, reloj de arena, calendario, agenda, cama y calendario).</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=38c45c11bc6641f08750e9d383f2d8ba" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 12 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 12</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">En "Pomodoro y Rutina" añade flechas de navegación en los círculos de cambio. Renombra "Largo" a "Descanso Largo". Añade la sección "Comparar" (días, semanas, meses, años).</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=29eeb735c3f34fb99d673da2d8304abe" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 13 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 13</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Cambia la fecha base a 2026 y añade los años posteriores para la selección en los menús.</div>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=e005ef7e4315428999c22196ca393941" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 14 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 14</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">En la sección Comparar, permite elegir entre "Días", "Semanas", "Meses" y "Años". Muestra métricas de actividades realizadas, horas invertidas, días de descanso y tiempo de sueño.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.withgoogle.com/preview/13625888639409081188?node-id=d32bae57657443a0aa58a54cffdb1d7d" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 15 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 15</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Ajusta los recuadros de comparación a: Tiempo de foco activo totales, Tiempos de descanso totales, Tareas realizadas totales y Sueño total.</div>
+                        <button class="toggle-btn" onclick="toggleText(this)">Leer más</button>
+                    </div>
+                </div>
+                <a href="https://stitch.google.com/preview/13625888639409081188?node-id=dd6c5979dd4348f89f08ba75006f9864" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+            <!-- Prompt 16 -->
+            <article class="card">
+                <div>
+                    <div class="card-header">
+                        <span class="prompt-number">Prompt 16</span>
+                        <span class="platform-tag">Stitch AI</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="prompt-text">Añade los próximos 3 años en el selector de comparaciones avanzadas.</div>
+                    </div>
+                </div>
+                <a href="https://stitch.google.com/preview/13625888639409081188?node-id=0de718b3ac66431fb6961658564a1fbf" target="_blank" class="btn btn-primary">
+                    Ver Previsualización
+                    <svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.41l-9.17 9.17-1.41-1.41L17.59 5H14V3zM5 5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7H5V5z"/></svg>
+                </a>
+            </article>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2026 Pomodoro & Life Tracker — Proyecto de Desarrollo Web & UI/UX. Generado con estándares modernos HTML5/CSS3.</p>
+    </footer>
+
+    <!-- JAVASCRIPT MODULAR -->
+    <script>
+        // Función para mostrar / ocultar texto largo en tarjetas
+        function toggleText(btn) {
+            const promptText = btn.previousElementSibling;
+            promptText.classList.toggle('expanded');
+            btn.textContent = promptText.classList.contains('expanded') ? 'Mostrar menos' : 'Leer más';
+        }
+
+        // Buscador interactivo en tiempo real
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                if (text.includes(term)) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            document.getElementById('statsCount').textContent = `Mostrando ${visibleCount} de ${cards.length} iteraciones`;
+        });
+    </script>
+</body>
+</html>

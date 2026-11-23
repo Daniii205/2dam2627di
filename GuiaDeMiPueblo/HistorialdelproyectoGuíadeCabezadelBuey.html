@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Historial del proyecto · Guía de Cabeza del Buey</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+<style>
+:root{--bg:#f6f1e7;--card:#fffdf8;--tx:#23301f;--mu:#667060;--pr:#2f6b3f;--ac:#b0793f;--bd:#e4dccb;--me:#e9f2e6;--on:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121a14;--card:#1b261e;--tx:#e8eee3;--mu:#9aab9a;--pr:#6fbf84;--ac:#d9a35f;--bd:#2b3b2f;--me:#22331f;--on:#10200f}}
+:root[data-theme=dark]{--bg:#121a14;--card:#1b261e;--tx:#e8eee3;--mu:#9aab9a;--pr:#6fbf84;--ac:#d9a35f;--bd:#2b3b2f;--me:#22331f;--on:#10200f}
+*{box-sizing:border-box;margin:0}body{background:var(--bg);color:var(--tx);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 16px 60px;overflow-x:hidden}
+.w{max-width:820px;margin:auto}h1,h2{font-family:Georgia,serif;line-height:1.2}h1{font-size:clamp(26px,5vw,38px)}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.btn{display:inline-block;background:var(--pr);color:var(--on);padding:9px 16px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;border:0;cursor:pointer}
+.sub{color:var(--mu);margin:8px 0 22px}.note{border:1px dashed var(--bd);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--mu);margin-bottom:24px}
+ol{list-style:none;padding:0;border-left:3px solid var(--bd);margin-left:12px}li{position:relative;padding:0 0 28px 22px}
+li:before{content:attr(data-n);position:absolute;left:-17px;top:0;width:30px;height:30px;border-radius:50%;background:var(--pr);color:var(--on);display:grid;place-items:center;font-weight:700;font-size:14px}
+.b{border-radius:16px;padding:12px 16px;margin:8px 0;border:1px solid var(--bd);background:var(--card)}.b.u{background:var(--me)}.b small{display:block;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.05em;font-size:11px;margin-bottom:2px}
+.v{display:inline-block;background:var(--ac);color:#fff;border-radius:10px;padding:1px 10px;font-size:12px;font-weight:700;margin-right:6px}
+ul{padding-left:18px;margin:6px 0}li li{padding:0;border:0}li li:before{display:none}.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.tags span{background:var(--bd);border-radius:10px;padding:2px 10px;font-size:12px;color:var(--mu)}
+table{width:100%;border-collapse:collapse;font-size:14px;display:block;overflow-x:auto}th,td{padding:6px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+</style></head><body><div class="w">
+<div class="top"><div><h1>Historial del proyecto</h1><p class="sub">Guía turística interactiva de Cabeza del Buey: tus peticiones, mis respuestas y la versión del HTML que salió de cada paso.</p></div><button class="btn" id="t" aria-label="Cambiar tema">🌓</button></div>
+<div class="note">Cada versión está publicada en su propia página y enlazada en su apartado. Las versiones v1 a v4 las he reconstruido a partir de la actual repitiendo los cambios de cada paso, así que pueden diferir en detalles menores de lo que viste entonces.<br><br><a class="btn" href="https://claude.ai/artifact/6fHZywpjhUNdBswDnkotB2">Abrir la guía actual (v5)</a></div>
+<ol>
+<li data-n="1"><h2>Prompt del proyecto</h2>
+<div class="b u"><small>Tú</small>Enviaste el prompt completo: aplicación turística interactiva con 16 apartados (diseño, modo claro/oscuro, 7 secciones, 9 categorías, fichas, Mi recorrido, mapa, valoraciones, favoritos, perfil, animaciones, responsive y tecnología).</div>
+<div class="b"><small>Respuesta</small>Confirmé que lo tenía claro y pedí la información del municipio.</div></li>
+<li data-n="2"><h2>Información de apoyo y aviso de límites</h2>
+<div class="b u"><small>Tú</small>Dijiste que después del prompt me mandarías los datos.</div>
+<div class="b"><small>Respuesta</small>Te avisé de dos límites técnicos de las páginas publicadas: no pueden cargar imágenes ni mosaicos de mapas desde webs externas, solo imágenes incrustadas en el archivo.</div></li>
+<li data-n="3"><h2>PDF «Guía Cultural y Patrimonial de Cabeza del Buey»</h2>
+<div class="b u"><small>Tú</small>Subiste el PDF de 16 páginas: 9 bloques temáticos y 8 fotografías.</div>
+<div class="b"><small>Respuesta · <span class="v">v1</span>Primera versión</small>Construí la app con 96 lugares (en su momento dije «unos 115», fue una estimación errónea), 7 secciones, 5 recorridos temáticos con progreso guardado, modo claro/oscuro, valoraciones, favoritos y perfil con insignias. Incrusté las 8 fotos del PDF y el resto de lugares llevó una imagen provisional. El mapa fue un esquema por distancias, porque el PDF no trae coordenadas.
+<div class="tags"><span>~1,1 MB</span><span>7 secciones</span><span>8 fotos</span><span>mapa esquemático</span></div><p style="margin-top:10px"><a class="btn" href="https://claude.ai/artifact/5oHKAiyTmba2BGpYad2fCX">Abrir la versión v1</a></p></div></li>
+<li data-n="4"><h2>«No quiero fotos reales… quita el mapa»</h2>
+<div class="b u"><small>Tú</small>Pediste emojis por categoría donde haya imágenes y eliminar el mapa.</div>
+<div class="b"><small>Respuesta · <span class="v">v2</span>Sin fotos ni mapa</small>Quité todas las fotos y puse el emoji de cada categoría sobre un degradado. Eliminé la sección Mapa, su menú y las coordenadas de las fichas, que quedó en 6 secciones.
+<div class="tags"><span>32 KB</span><span>6 secciones</span><span>0 fotos</span></div><p style="margin-top:10px"><a class="btn" href="https://claude.ai/artifact/WQ42QKnxKzhwTqMosiwTDb">Abrir la versión v2</a></p></div></li>
+<li data-n="5"><h2>«Solo las imágenes de las categorías»</h2>
+<div class="b u"><small>Tú</small>Pediste que se mantuvieran solo las imágenes de las categorías. Como era ambiguo, te ofrecí dos opciones y elegiste <i>recuperar las fotos reales, solo en las portadas de categoría</i>.</div>
+<div class="b"><small>Respuesta · <span class="v">v3</span>Fotos solo en categorías</small>7 de las 9 categorías recibieron foto en su tarjeta de Inicio y en su portada. Rutas y Fiestas quedaron con emoji porque no había foto adecuada. Los lugares individuales siguieron con emoji.
+<ul><li>Monumentos: Santuario · Urbano: Plaza de la Fuente · Prehistoria: arte rupestre</li><li>Romano: termas · Naturaleza: dehesas · Personajes: Castillo · Gastronomía: Torta de La Serena</li></ul>
+<div class="tags"><span>636 KB</span><span>7 fotos de categoría</span></div><p style="margin-top:10px"><a class="btn" href="https://claude.ai/artifact/MfwL8jkG2JehvnzUYutSEF">Abrir la versión v3</a></p></div></li>
+<li data-n="6"><h2>Segundo PDF con imágenes nombradas</h2>
+<div class="b u"><small>Tú</small>Subiste un PDF de 28 páginas con 42 imágenes, cada una con el nombre de su lugar, y pediste añadirlas.</div>
+<div class="b"><small>Respuesta · <span class="v">v4</span>Fotos por lugar</small>Asigné 38 fotos a sus lugares. No usé 4: tres estaban repetidas (Casco histórico, Casas solariegas y Casas Valdivia Rol) y la de Majadilla del Local mostraba el convento de las Concepcionistas, no una cueva. Sierra de la Rinconada no traía imagen.
+<div class="tags"><span>2,5 MB</span><span>38 fotos de lugares</span></div><p style="margin-top:10px"><a class="btn" href="https://claude.ai/artifact/Fwj18HTmHvnJ9Nwtiduzi9">Abrir la versión v4</a></p></div></li>
+<li data-n="7"><h2>«Mantén también las imágenes del principio»</h2>
+<div class="b u"><small>Tú</small>Pediste conservar también las fotos del primer PDF (Plaza de la Fuente, etc.).</div>
+<div class="b"><small>Respuesta · <span class="v">v5</span>Versión actual</small>Devolví las 8 fotos del primer PDF a sus lugares: Santuario de Belén, Castillo de Almorchón, Plaza de la Fuente, Portadas de granito, Centro de Arte Rupestre, termas romanas, Dehesas y Torta de La Serena. Santuario y Castillo tienen ahora dos fotos y las fichas muestran galería. En total hay 44 lugares con foto.
+<div class="tags"><span>3,2 MB</span><span>44 lugares con foto</span><span>galería múltiple</span></div><p style="margin-top:10px"><a class="btn" href="https://claude.ai/artifact/6fHZywpjhUNdBswDnkotB2">Abrir la versión v5</a></p></div></li>
+<li data-n="8"><h2>Esta página</h2>
+<div class="b u"><small>Tú</small>Pediste una página aparte con los pasos y sus resultados.</div>
+<div class="b"><small>Respuesta</small>Este historial.</div></li>
+</ol>
+<h2 style="margin:10px 0 10px">Resumen de versiones</h2>
+<table><tr><th>Versión</th><th>Peso</th><th>Fotos</th><th>Mapa</th><th>Cambio principal</th></tr>
+<tr><td>v1</td><td>1,1 MB</td><td>8 en lugares</td><td>Sí</td><td>Primera app completa</td></tr>
+<tr><td>v2</td><td>32 KB</td><td>0</td><td>No</td><td>Emojis, sin mapa</td></tr>
+<tr><td>v3</td><td>636 KB</td><td>7 en categorías</td><td>No</td><td>Fotos solo en portadas</td></tr>
+<tr><td>v4</td><td>2,5 MB</td><td>38 en lugares</td><td>No</td><td>Segundo PDF</td></tr>
+<tr><td>v5</td><td>3,2 MB</td><td>44 en lugares</td><td>No</td><td>Fotos del primer PDF</td></tr></table>
+</div>
+<script>try{var t=document.getElementById("t");t.onclick=function(){var d=document.documentElement,c=d.dataset.theme||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");d.dataset.theme=c=="dark"?"light":"dark"}}catch(e){}</script></body></html>
